@@ -8,6 +8,8 @@ __dot_aws_folder__ = '.aws'
 from ..constants import __tooling_name__
 
 import os
+import requests
+import json
 import sys
 import boto3
 import shlex
@@ -16,6 +18,7 @@ from pathlib import Path
 import subprocess
 import datetime
 from typing import Optional
+from botocore.exceptions import ClientError
 from ..config.database import ToolingDatabase
 from ..error.error import AuthenticationError
 
@@ -106,7 +109,10 @@ class Authentication:
         self.appConfig = Config()
         self.alerts = AlertState()
 
-        self.set_aws_config_file_osenviron()
+        self.is_ec2_instance, self.instance_id = self.is_running_on_ec2()
+
+        if not self.is_ec2_instance:
+            self.set_aws_config_file_osenviron()
 
     def set_aws_config_file_osenviron(self, config_filename:Path = None) -> None: 
         '''setup environment variable'''
@@ -154,20 +160,21 @@ class Authentication:
     def create_account_session(self, profile_name:str = None, aws_cow_account_boto_session:boto3.Session = None) -> boto3.Session: 
         '''Create default session to use with various calls such as pricing API'''
 
-        if profile_name is None and not self.appConfig.arguments_parsed.profile:
-            profile_name = f"{self.appConfig.internals['internals']['boto']['default_profile_name']}_profile"
+        if not self.is_ec2_instance:
+            if profile_name is None and not self.appConfig.arguments_parsed.profile:
+                profile_name = f"{self.appConfig.internals['internals']['boto']['default_profile_name']}_profile"
 
-        if self.appConfig.arguments_parsed.profile:
-            profile_name = self.appConfig.arguments_parsed.profile
+            if self.appConfig.arguments_parsed.profile:
+                profile_name = self.appConfig.arguments_parsed.profile
 
-        try:
-            aws_cow_account_boto_session = boto3.Session(profile_name=profile_name)
-            
-            return aws_cow_account_boto_session
-        except Exception as e:
-            message = f"boto3.session is not using credentials from profile {profile_name} since not present !"
-            self.alerts.alerts[profile_name] = message
-            self.logger.info(message)
+            try:
+                aws_cow_account_boto_session = boto3.Session(profile_name=profile_name)
+                
+                return aws_cow_account_boto_session
+            except Exception as e:
+                message = f"boto3.session is not using credentials from profile {profile_name} since not present !"
+                self.alerts.alerts[profile_name] = message
+                self.logger.info(message)
 
         try:
             aws_cow_account_boto_session = boto3.Session()
@@ -361,3 +368,28 @@ class Authentication:
             raise ValueError('Internal Error: invalid login type provided')
 
         self.appConfig.database.insert_record({'login_type': login_type, 'login_timestamp': login_timestamp, 'login_cache_expiration': login_cache_expiration, 'login_hash': login_hash}, 'cow_login')
+
+    def is_running_on_ec2(self):
+        """Check if the code is running on an EC2 instance by querying the metadata service."""
+        try:
+            # Try IMDSv2 first (more secure)
+            token_url = "http://169.254.169.254/latest/api/token"
+            token_headers = {"X-aws-ec2-metadata-token-ttl-seconds": "21600"}
+            token_response = requests.put(token_url, headers=token_headers, timeout=1)
+            token = token_response.text
+            
+            # Use the token to get instance ID
+            metadata_url = "http://169.254.169.254/latest/meta-data/instance-id"
+            metadata_headers = {"X-aws-ec2-metadata-token": token}
+            response = requests.get(metadata_url, headers=metadata_headers, timeout=1)
+            
+            instance_id = response.text
+            return True, instance_id
+        except requests.exceptions.RequestException:
+            try:
+                # Fall back to IMDSv1 if IMDSv2 fails
+                response = requests.get("http://169.254.169.254/latest/meta-data/instance-id", timeout=1)
+                instance_id = response.text
+                return True, instance_id
+            except requests.exceptions.RequestException:
+                return False, None
