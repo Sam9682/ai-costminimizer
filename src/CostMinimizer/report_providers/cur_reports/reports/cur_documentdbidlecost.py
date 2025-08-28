@@ -396,7 +396,7 @@ line_item_usage_account_id,
 {resource_select}, 
 {product_region_condition}, 
 sum(CAST(line_item_unblended_cost AS decimal(16,8))) AS estimated_savings 
-FROM {self.cur_db}.{self.cur_table} 
+FROM {self.cur_table} 
 WHERE 
 {account_id} 
 line_item_usage_start_date BETWEEN DATE_ADD('month', -1, DATE('{max_date}')) AND DATE('{max_date}') 

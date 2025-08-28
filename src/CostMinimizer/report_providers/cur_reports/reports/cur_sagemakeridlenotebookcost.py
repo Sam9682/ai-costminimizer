@@ -193,7 +193,7 @@ class CurSagemakeridlenotebookcost(CurBase):
         l_SQL= f"""SELECT 
 {select_fields}
 ROUND(SUM(line_item_unblended_cost),2) AS estimated_savings 
-FROM {self.cur_db}.{self.cur_table} 
+FROM {self.cur_table} 
 WHERE 
 {account_id} 
 product_product_name like '%SageMaker%' 

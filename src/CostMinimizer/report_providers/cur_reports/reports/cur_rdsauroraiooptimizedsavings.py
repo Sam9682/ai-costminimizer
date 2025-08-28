@@ -229,7 +229,7 @@ WHEN ((\"line_item_line_item_type\" = 'Fee')
 ELSE \"line_item_unblended_cost\" 
 END)) \"spend\", 
 'compute' as type_spend 
-FROM {self.cur_db}.{self.cur_table} 
+FROM {self.cur_table} 
 WHERE 
 {account_id} 
 line_item_usage_start_date BETWEEN DATE_ADD('month', -1, DATE('{max_date}')) AND DATE('{max_date}') 
@@ -248,7 +248,7 @@ line_item_usage_account_id,
 {line_item_product_code_condition}, 
 SUM(line_item_unblended_cost) AS \"spend\", 
 'storage' as type_spend 
-FROM {self.cur_db}.{self.cur_table} 
+FROM {self.cur_table} 
 WHERE 
 {account_id} 
 line_item_usage_start_date BETWEEN DATE_ADD('month', -1, DATE('{max_date}')) AND DATE('{max_date}') 
@@ -266,7 +266,7 @@ line_item_usage_account_id,
 {line_item_product_code_condition}, 
 SUM(line_item_unblended_cost) as \"spend\", 
 'io' as type_spend 
-FROM {self.cur_db}.{self.cur_table} 
+FROM {self.cur_table} 
 WHERE 
 {account_id} 
 line_item_usage_start_date BETWEEN DATE_ADD('month', -1, DATE('{max_date}')) AND DATE('{max_date}') 

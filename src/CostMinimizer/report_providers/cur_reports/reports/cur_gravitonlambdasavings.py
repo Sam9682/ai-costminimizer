@@ -311,7 +311,7 @@ CASE SUBSTR( line_item_usage_type, (length(line_item_usage_type) - 2) )
 WHEN ('ARM') THEN 0 ELSE (line_item_unblended_cost * .2) 
 END AS savings_with_arm, 
 SUM(line_item_unblended_cost) AS line_item_unblended_cost 
-FROM {self.cur_db}.{self.cur_table} 
+FROM {self.cur_table} 
 WHERE 
 {account_id} 
 ({line_item_product_code_condition}) 

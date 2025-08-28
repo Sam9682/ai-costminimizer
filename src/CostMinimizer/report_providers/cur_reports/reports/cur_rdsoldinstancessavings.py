@@ -228,7 +228,7 @@ line_item_usage_account_id,
 {product_instance_type_family_condition}, 
 line_item_unblended_rate, 
 SUM(line_item_unblended_cost) AS cost 
- FROM {self.cur_db}.{self.cur_table} 
+ FROM {self.cur_table} 
  WHERE 
 {account_id} 
  {product_product_name_condition} 

@@ -225,7 +225,7 @@ SUM(line_item_unblended_cost) AS sum_line_item_unblended_cost,
 AVG(CAST(line_item_usage_amount AS DOUBLE)) AS avg_cpu_utilization, 
 {product_cache_engine_condition}, 
 {product_region_code_condition} 
-FROM {self.cur_db}.{self.cur_table} 
+FROM {self.cur_table} 
 WHERE 
 {account_id} 
 {product_product_name_condition} 

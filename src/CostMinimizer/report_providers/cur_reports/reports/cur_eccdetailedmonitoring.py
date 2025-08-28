@@ -224,7 +224,7 @@ m.line_item_resource_id"""
 
         l_SQL= f"""WITH base as 
 (select {resource_select} 
-FROM {self.cur_db}.{self.cur_table} 
+FROM {self.cur_table} 
 WHERE 
 {account_id} 
 line_item_usage_start_date BETWEEN DATE_ADD('month', -1, DATE('{max_date}')) AND DATE('{max_date}') 

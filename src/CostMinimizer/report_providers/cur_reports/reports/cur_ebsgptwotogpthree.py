@@ -244,7 +244,7 @@ line_item_usage_type,
 pricing_unit, 
 line_item_unblended_cost, 
 line_item_usage_amount 
-FROM {self.cur_db}.{self.cur_table} 
+FROM {self.cur_table} 
 WHERE 
 {account_id} 
 ({line_item_product_code_condition}) 

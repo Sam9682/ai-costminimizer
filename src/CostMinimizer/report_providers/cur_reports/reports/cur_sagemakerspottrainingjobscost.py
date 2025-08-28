@@ -194,7 +194,7 @@ class CurSagemakerspottrainingjobscost(CurBase):
         l_SQL = f"""SELECT 
 {select_fields}
 sum(line_item_unblended_cost)*.5 AS estimated_savings 
-FROM {self.cur_db}.{self.cur_table} 
+FROM {self.cur_table} 
 WHERE 
 {account_id} 
 product_product_name like '%SageMaker%' 

@@ -308,7 +308,7 @@ line_item_usage_account_id,
 {resource_select}, 
 SUM(CAST(line_item_usage_amount AS DOUBLE)) AS sum_line_item_usage_amount, 
 SUM(CAST(line_item_blended_cost AS DECIMAL(16, 8))*.3) AS estimated_savings 
-FROM {self.cur_db}.{self.cur_table} 
+FROM {self.cur_table} 
 WHERE 
 {account_id} 
 line_item_usage_start_date BETWEEN DATE_ADD('month', -1, DATE('{max_date}')) AND DATE('{max_date}') 

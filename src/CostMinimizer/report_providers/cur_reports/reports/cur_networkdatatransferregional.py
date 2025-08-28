@@ -224,7 +224,7 @@ DATE_FORMAT((line_item_usage_start_date),'%Y-%m') AS month_line_item_usage_start
 line_item_line_item_description, 
 {resource_select} 
 sum(line_item_unblended_cost) AS sum_line_item_unblended_cost 
-FROM {self.cur_db}.{self.cur_table} 
+FROM {self.cur_table} 
 WHERE 
 {account_id} 
 line_item_line_item_description LIKE '%regional data transfer%' 

@@ -223,7 +223,7 @@ class CurCloudtrailduplicatemanagement(CurBase):
   SELECT 
     {select_fields} 
     sum(line_item_unblended_cost) as cost 
-  FROM {self.cur_db}.{self.cur_table}  
+  FROM {self.cur_table}  
   WHERE 
     {account_id} 
     line_item_usage_start_date BETWEEN DATE_ADD('month', -1, DATE('{max_date}')) AND DATE('{max_date}') 

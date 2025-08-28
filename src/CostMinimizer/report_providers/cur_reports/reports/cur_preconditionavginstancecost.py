@@ -225,7 +225,7 @@ SUM(CASE
         ELSE line_item_unblended_cost  
       END) as sum_amortized_cost, 
 SUM(line_item_unblended_cost) as line_item_unblended_cost 
-FROM {self.cur_db}.{self.cur_table} 
+FROM {self.cur_table} 
 WHERE 
 {account_id} 
 {product_code_condition} 

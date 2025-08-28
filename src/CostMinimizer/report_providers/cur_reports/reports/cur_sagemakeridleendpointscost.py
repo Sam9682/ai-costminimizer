@@ -193,7 +193,7 @@ class CurSagemakeridleendpointscost(CurBase):
         l_SQL = f"""SELECT 
 {select_fields}
 sum(line_item_unblended_cost) as estimated_savings 
-FROM {self.cur_db}.{self.cur_table} 
+FROM {self.cur_table} 
 WHERE 
 {account_id} 
 line_item_product_code = 'AmazonSageMaker' 
