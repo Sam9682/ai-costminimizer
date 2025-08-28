@@ -16,6 +16,7 @@ It interacts with YAML files, databases, and environment variables to set up the
 """
 
 import yaml
+import json
 import os, sys
 import logging
 import sysconfig
@@ -90,6 +91,8 @@ class Config(Singleton):
 
         #if tool not configured; attempt automatic configuration
         #TODO in the future this functionality shouold be moved to ConfigureToolingCommand()
+        
+        
         cls.attempt_automatic_configuration()
 
         #write all available reports to database
@@ -586,7 +589,23 @@ internals:
         except Exception as e:
             cls.console.print(f"[red]Error: {e}[/red]")
             cls.console.print(f"[red]Launch 'aws configure' or set values for credentials variables AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY[/red]")
+            cls.logger.info(f"Launch 'aws configure' or set values for credentials variables AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY")
             raise(e)
+
+        
+        automatic_configuration_import_file = cls.report_output_directory / cls.internals['internals']['results_folder']['automatic_configuration_from_file_filename']
+        if automatic_configuration_import_file.is_file():
+            with open(automatic_configuration_import_file, "r", encoding="utf-8") as f:
+                automatic_configuration_data = json.load(f)
+
+            try:
+                cls.insert_automated_configuration(automatic_configuration_data)
+            except Exception as e:
+                cls.console.print(f"[red]Error: {e}[/red]")
+                cls.console.print(f"[red]Failed to import config values from file {str(automatic_configuration_import_file)}")
+                cls.logger.info(f"Failed to import config values from file {str(automatic_configuration_import_file)}")
+                raise(e)
+
 
         return account_id
         
