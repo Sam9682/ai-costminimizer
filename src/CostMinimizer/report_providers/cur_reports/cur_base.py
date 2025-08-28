@@ -1246,7 +1246,7 @@ class CurBase(ReportBase, ABC):
             l_SQL = f"""SELECT 
 CAST(DATE_TRUNC('month', DATE_ADD('month', -{months_back}, max(distinct(bill_billing_period_start_date)))) AS DATE), 
 CAST(DATE_ADD('month', 1, DATE_TRUNC('month', DATE_ADD('month', -{months_back}, max(distinct(bill_billing_period_start_date))))) - INTERVAL '1' DAY AS DATE) 
-FROM {self.cur_db}.{self.cur_table};"""
+FROM {self.cur_table};"""
             l_SQL2 = l_SQL.replace('\n', '').replace('\t', ' ')
             l_SQL3 = sqlparse.format(l_SQL2, keyword_case='upper', reindent=False, strip_comments=True)
             cur_db = self.appConfig.arguments_parsed.cur_db if (hasattr(self.appConfig.arguments_parsed, 'cur_db') and self.appConfig.arguments_parsed.cur_db is not None) else self.appConfig.config['cur_db']

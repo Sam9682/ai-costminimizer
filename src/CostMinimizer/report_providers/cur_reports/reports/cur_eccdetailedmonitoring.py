@@ -224,7 +224,7 @@ m.line_item_resource_id"""
 
         l_SQL= f"""WITH base as 
 (select {resource_select} 
-FROM {self.cur_db}.{self.cur_table} 
+FROM {self.cur_table} 
 WHERE 
 {account_id} 
 line_item_usage_start_date BETWEEN DATE_ADD('month', -1, DATE('{max_date}')) AND DATE('{max_date}') 
@@ -240,8 +240,7 @@ sum(m.line_item_usage_amount) AS usage_quantity,
 sum(m.line_item_unblended_cost) AS usage_cost, 
 sum(m.line_item_unblended_cost)/sum(m.line_item_usage_amount) AS rate, 
 (sum(m.line_item_unblended_cost)/sum(m.line_item_usage_amount))*7 AS savings 
-FROM 
-{self.cur_db}.{self.cur_table} m, base b 
+FROM {self.cur_table} m, base b 
 WHERE 
 {account_id} 
 {resource_where} 

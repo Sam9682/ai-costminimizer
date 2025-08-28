@@ -201,7 +201,7 @@ class CurSssstandardstorageoptimization(CurBase):
 SELECT 
 {resource_select} as get_resource_id, 
 SUM(CAST(line_item_unblended_cost AS decimal(16,8))) AS get_spend 
-FROM {self.cur_db}.{self.cur_table} 
+FROM {self.cur_table} 
 WHERE 
 {account_id} 
 line_item_usage_start_date BETWEEN DATE_ADD('month', -1, DATE('{max_date}')) AND DATE('{max_date}') 
@@ -215,7 +215,7 @@ put_spend as (
 SELECT 
 {resource_select} as put_resource_id, 
 SUM(CAST(line_item_unblended_cost AS decimal(16,8))) AS put_spend 
-FROM {self.cur_db}.{self.cur_table} 
+FROM {self.cur_table} 
 WHERE 
 {account_id} 
 line_item_usage_start_date BETWEEN DATE_ADD('month', -1, DATE('{max_date}')) AND DATE('{max_date}') 
@@ -230,7 +230,7 @@ SELECT
 line_item_usage_account_id as account_id, 
 {resource_select} as storage_resource_id, 
 SUM(CAST(line_item_unblended_cost AS decimal(16,8))) AS standard_storage_spend 
-FROM {self.cur_db}.{self.cur_table} 
+FROM {self.cur_table} 
 WHERE 
 {account_id} 
 line_item_usage_start_date BETWEEN DATE_ADD('month', -1, DATE('{max_date}')) AND DATE('{max_date}') 

@@ -265,7 +265,7 @@ line_item_usage_type,
 {product_from_location_condition},
 SUM(line_item_usage_amount) as USAGE, 
 SUM(line_item_unblended_cost) as COST 
-FROM {self.cur_db}.{self.cur_table} 
+FROM {self.cur_table} 
 WHERE 
 {account_id} 
 line_item_line_item_type = 'Usage' 

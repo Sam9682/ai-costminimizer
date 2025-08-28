@@ -439,7 +439,7 @@ ELSE line_item_unblended_cost
 END) AS amortized_cost, 
 SUM(line_item_usage_amount) as usage_amount 
 {l_SQL_tag_groupby} 
-FROM {self.cur_db}.{self.cur_table} 
+FROM {self.cur_table} 
 WHERE 
 {account_id} 
 {line_item_product_code_condition} 

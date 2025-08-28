@@ -218,7 +218,7 @@ line_item_usage_type,
 line_item_product_code AS endpoint_product_code, 
 line_item_operation AS endpoint_operation, 
 ROUND(SUM(line_item_unblended_cost),2) AS cost 
-FROM {self.cur_db}.{self.cur_table} 
+FROM {self.cur_table} 
 WHERE 
 {account_id} 
 line_item_line_item_type LIKE 'Usage' 

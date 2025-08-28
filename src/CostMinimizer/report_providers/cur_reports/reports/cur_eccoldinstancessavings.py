@@ -228,7 +228,7 @@ line_item_operation,
 split_part(line_item_usage_type,':',2) instance_type, 
 line_item_unblended_rate, 
 sum(line_item_usage_amount) hours 
-FROM {self.cur_db}.{self.cur_table} 
+FROM {self.cur_table} 
 WHERE 
 {account_id} 
 {line_item_product_code_condition} 
