@@ -240,8 +240,7 @@ sum(m.line_item_usage_amount) AS usage_quantity,
 sum(m.line_item_unblended_cost) AS usage_cost, 
 sum(m.line_item_unblended_cost)/sum(m.line_item_usage_amount) AS rate, 
 (sum(m.line_item_unblended_cost)/sum(m.line_item_usage_amount))*7 AS savings 
-FROM 
-{self.cur_db}.{self.cur_table} m, base b 
+FROM {self.cur_table} m, base b 
 WHERE 
 {account_id} 
 {resource_where} 

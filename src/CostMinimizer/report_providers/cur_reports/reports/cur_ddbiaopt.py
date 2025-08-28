@@ -254,7 +254,7 @@ FROM (
 SELECT {resource_select},line_item_usage_account_id, 
 MAX( 
 CASE 
-WHEN "pricing_term" = 'Reserved' 
+WHEN 'pricing_term' = 'Reserved' 
 THEN 1 
 ELSE 0 
 END 
@@ -273,7 +273,7 @@ END
 MIN(line_item_usage_start_date) AS line_item_usage_start_date, 
 MAX(line_item_usage_end_date) AS line_item_usage_end_date 
 FROM 
-{self.cur_db}.{self.cur_table} 
+{self.cur_table} 
 WHERE 
 {account_id} 
 {line_item_product_code_condition} 
