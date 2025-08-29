@@ -51,7 +51,9 @@ There are 2 options to install and configure the tool: automatic with Q CLI and 
 
 ##### Option 1) Automatic with Q CLI 
 
-**Credentials**: before launching the installation, AWS credentials have to be defined.  There are three ways to define credentials.
+**Credentials**: 
+
+before launching the installation, AWS credentials have to be defined.  There are three ways to define credentials.
 
 #1. As [AWS Environment Variables](https://docs.aws.amazon.com/cli/v1/userguide/cli-configure-envvars.html)
 ```
@@ -63,7 +65,8 @@ AWS_SESSION_TOKEN
 
 #3. If running inside of an EC2 instance, the command will use the permissions in the [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html) assigned to the instance. 
 
-**Install with Q CLI**
+**Install with Q CLI:**
+
 Just execute this bash Q CLI command:
 
 _Note: if you are using the --profile option, tell Q Chat to use --profile and the name of the profile._
