@@ -80,7 +80,8 @@ following instructions written in the section called Option 2) Bash 'command ins
 #### Option 2) Bash command instructions, Manual option
 
 #### 2.1 Clone the repository
-```git clone https://github.com/aws-samples/sample-costminimizer.git
+```
+git clone https://github.com/aws-samples/sample-costminimizer.git
 cd sample-costminimizer
 ```
 
