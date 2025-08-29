@@ -79,9 +79,19 @@ cd ~/CostMinimizer && source .venv/bin/activate && pip install -r requirements.t
 cd ~/CostMinimizer && source .venv/bin/activate && python setup.py develop
 
 # 2.5 Configure the tool
+# next is the configuration json file to auto configure the tooling, this is the CUR definition for the workshop studio
+cat > ~/cow/cm_autoconfig.json << 'EOF'
+{
+  "cur_region": "us-east-1",
+  "cur_db": "cur-database",
+  "cur_table": "raw_cur_data"
+}
+EOF
+
+# 2.6 Configure the tool
 cd ~/CostMinimizer && source .venv/bin/activate && CostMinimizer --configure --auto-update-conf
 
-# 2.6 Last step, check the current configuration of the tool
+# 2.7 Last step, check the current configuration of the tool
 cd ~/CostMinimizer && source .venv/bin/activate && CostMinimizer --configure --ls-conf
 
 For information, the configuration has the following parameters :
