@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "costminimizer": {
+      "command": "C:\\Users\\slepetre\\workspace\\sample-costminimizer\\start-costminimizer-mcp-server.sh",
+      "args": [],
+      "cwd": "c:\\Users\\slepetre\\workspace\\CostMinimizer",
+      "env": {
+        "PYTHONPATH": "src"
+      }
+    }
+  }
+}
