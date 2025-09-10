@@ -127,7 +127,7 @@ cat > ~/cow/cm_autoconfig.json << EOF
   "cur_region": "us-east-1",
   "cur_db": "cur-database",
   "cur_table": "raw_cur_data",
-  "aws_cow_s3_bucket": "aws-athena-query-results-${AWS_ACCOUNT_ID}-us-east-1",
+  "aws_cow_s3_bucket": "s3://aws-athena-query-results-${AWS_ACCOUNT_ID}-us-east-1/",
   "cur_s3_bucket": "s3://aws-athena-query-results-${AWS_ACCOUNT_ID}-us-east-1/"
 }
 EOF
