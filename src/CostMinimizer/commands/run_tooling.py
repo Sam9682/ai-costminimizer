@@ -35,6 +35,7 @@ class RunToolingRun:
         self.logger = logging.getLogger(__name__)
         self.appInstance = appInstance
         self.appConfig = Config()
+        self.mode = getattr(appInstance, 'mode', 'cli')  # Add mode attribute with default fallback
         
         self.selected_reports = selected_reports
         self.selected_accounts = selected_accounts
@@ -476,7 +477,7 @@ class RunToolingRun:
                 reports_from_menu=parsed_reports_from_menu
                 )
 
-            self.logger.info(f'Running in {self.mode} mode: Report data source from {datasource} : {datasource_file}')
+            self.logger.info(f'Running in {self.appConfig.mode} mode: Report data source from {datasource} : {datasource_file}')
             return report_request.get_all_reports()
     
     def set_using_tags_from_arguments(self):

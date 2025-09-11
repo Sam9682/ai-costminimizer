@@ -52,14 +52,24 @@ class CostMinimizerTools:
     def execute_reports(self, reports: List[str], region: str = "us-east-1") -> Dict[str, Any]:
         """Execute cost optimization reports."""
         import sys
+        import logging
+        
+        logger = logging.getLogger(__name__)
         
         # Build command arguments
         cmd_args = []
         for report in reports:
             cmd_args.append(f"--{report}")
-        
+
+        # Add following arguments : --checks ALL
+        cmd_args.append("--checks")
+        cmd_args.append("ALL")
+
         if "co" in reports:
             cmd_args.extend(["--region", region])
+        
+        # Log the arguments being passed to CostMinimizer
+        logger.info(f"[MCP Module Mode] Launching CostMinimizer with arguments: {cmd_args}")
         
         # Execute CostMinimizer with preserved AWS credentials
         original_argv = sys.argv
@@ -70,6 +80,7 @@ class CostMinimizerTools:
                 os.environ[key] = value
             
             sys.argv = ["CostMinimizer"] + cmd_args
+            logger.info(f"[MCP Module Mode] sys.argv set to: {sys.argv}")
             app = App(mode='module')
             result = app.main()
             
@@ -94,10 +105,16 @@ class CostMinimizerTools:
     def ask_question(self, question: str, report_file: Optional[str] = None) -> Dict[str, Any]:
         """Ask AI-powered cost optimization question."""
         import sys
+        import logging
+        
+        logger = logging.getLogger(__name__)
         
         cmd_args = ["-q", question]
         if report_file and os.path.exists(report_file):
             cmd_args.extend(["-f", report_file])
+        
+        # Log the arguments being passed to CostMinimizer
+        logger.info(f"[MCP Module Mode] Launching CostMinimizer for question with arguments: {cmd_args}")
         
         original_argv = sys.argv
         original_env = dict(os.environ)
@@ -107,6 +124,7 @@ class CostMinimizerTools:
                 os.environ[key] = value
             
             sys.argv = ["CostMinimizer"] + cmd_args
+            logger.info(f"[MCP Module Mode] sys.argv set to: {sys.argv}")
             app = App(mode='module')
             result = app.main()
             

@@ -387,6 +387,10 @@ class ToolingDatabase:
 
     def update_record(self, request, table_name, where):
         '''function to abstract the update of records into our database'''
+        self.logger.info(f"update_record() : {table_name} - {where} - {request}")
+        # test if request is empty then return
+        if not request:
+            return
         keys = list(request.keys())
         values = list(request.values())
         sql_set = []
@@ -395,7 +399,6 @@ class ToolingDatabase:
             sql_set.append(f"{keys[i]} = ?")
 
         text_sql_set = ','.join(sql_set)
-        self.logger.info(text_sql_set)
 
         cursor = self.con.cursor()
 
