@@ -1,6 +1,14 @@
-FROM python:3.9-slim
+FROM public.ecr.aws/docker/library/python:3.9-7.3.13-slim
 
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y curl unzip && \
+    cmlog=/opt/costminimizer.log && \
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" >> "$cmlog" 2>&1 && \
+    unzip -o awscliv2.zip >> "$cmlog" 2>&1 && \
+    ./aws/install >> "$cmlog" 2>&1 && \
+    rm -rf awscliv2.zip aws && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and setup files
 COPY requirements.txt .
