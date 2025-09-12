@@ -877,8 +877,10 @@ f"- average spend over the last 6 months : ${round(mean_sum_last_6_months)}",
 
         try:
             self.save_presentation( report_directory)
-            msg=f'\n[green]Powerpoint presentation saved to: [yellow]{self.output_file.resolve()}\n'
-            self.appConfig.console.print(msg)
+            if self.appConfig.mode == 'cli':
+                msg=f'\n[green]Powerpoint presentation saved to: [yellow]{self.output_file.resolve()}\n'
+                self.appConfig.console.print(msg)
+            msg=f'Powerpoint presentation saved to: {self.output_file.resolve()}\n'
             self.logger.info(msg)
         except:
             msg=f'ERROR : Unable to save presentation into : {report_directory}'
