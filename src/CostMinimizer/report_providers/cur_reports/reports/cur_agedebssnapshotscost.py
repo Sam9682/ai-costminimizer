@@ -163,7 +163,9 @@ class CurAgedebssnapshotscost(CurBase):
                 display_msg = f'[green]Running Cost & Usage Report: {report_name} / {self.appConfig.selected_regions}[/green]'
             else:
                 display_msg = ''
-            for resource in track(response[1:], description=display_msg):
+
+            iterator = track(response[1:], description=display_msg) if self.appConfig.mode != 'cli' else response[1:]
+            for resource in iterator:
                 # try catch block to get the snapshot info using self.snapshot
                 try:
                     snapshot_id = resource['Data'][0]['VarCharValue'].split('snapshot/')[1] if 'snapshot/' in resource['Data'][0]['VarCharValue'] else ''

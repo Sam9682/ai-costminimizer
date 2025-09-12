@@ -96,7 +96,8 @@ class TaUnassociatedelasticipaddresses(TaBase):
             self.report_result.append({'Name': Name, 'Data': pd.DataFrame(), 'Type': type})
         else:
             display_msg = f'[green]Running Trusted Advisor Report: {Name} / {self.appConfig.selected_regions}[/green]'
-            for resource in track(response['result']['flaggedResources'], description=display_msg):
+            iterator = track(response['result']['flaggedResources'], description=display_msg) if self.appConfig.mode != 'cli' else response['result']['flaggedResources']
+            for resource in iterator:
                 data_dict = {
                     # Rename columns for better readability
                     self.get_required_columns()[0]: resource['status'],

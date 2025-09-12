@@ -221,7 +221,8 @@ class CurGravitonrdssavings(CurBase):
                 display_msg = f'[green]Running Cost & Usage Report: {report_name} / {self.appConfig.selected_regions}[/green]'
             else:
                 display_msg = ''
-            for resource in track(response[1:], description=display_msg):
+            iterator = track(response[1:], description=display_msg) if self.appConfig.mode != 'cli' else response[1:]
+            for resource in iterator:
                 current_cost = float(resource['Data'][7]['VarCharValue'])
                 region = 'us-east-1'
                 accountid = resource['Data'][0]['VarCharValue']

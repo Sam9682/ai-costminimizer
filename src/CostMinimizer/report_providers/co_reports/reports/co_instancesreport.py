@@ -159,7 +159,9 @@ class CoInstancesreport(CoBase):
             display_msg = f'[green]Running Compute Optimizer Report: {report_name} / {region}[/green]'
         else:
             display_msg = ''
-        for recommendation in track(recommendation_list, description=display_msg):
+
+        iterator = track(recommendation_list, description=display_msg) if self.appConfig.mode != 'cli' else recommendation_list
+        for recommendation in iterator:
                 data_dict = {}
                 data_dict['accountId'] = recommendation['accountId']
                 data_dict['region'] = recommendation['instanceArn'].split(':')[3]

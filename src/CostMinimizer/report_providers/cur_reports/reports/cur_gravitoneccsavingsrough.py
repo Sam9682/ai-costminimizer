@@ -220,7 +220,8 @@ class CurGravitoneccsavingsrough(CurBase):
                 display_msg = f'[green]Running Cost & Usage Report: {report_name} / {self.appConfig.selected_regions}[/green]'
             else:
                 display_msg = ''
-            for resource in track(response[1:], description=display_msg):
+            iterator = track(response[1:], description=display_msg) if self.appConfig.mode != 'cli' else response[1:]
+            for resource in iterator:
                 data_dict = {
                     self.get_required_columns()[0]: resource['Data'][0]['VarCharValue'] if 'VarCharValue' in resource['Data'][0] else '',  # line_item_usage_account_id
                     self.get_required_columns()[1]: resource['Data'][1]['VarCharValue'] if 'VarCharValue' in resource['Data'][1] else '',  # product_instance_type

@@ -291,7 +291,8 @@ class CurInteraztraffic(CurBase):
                 display_msg = f'[green]Running Cost & Usage Report: {report_name} / {self.appConfig.selected_regions}[/green]'
             else:
                 display_msg = ''
-            for resource in track(response[1:], description=display_msg):
+            iterator = track(response[1:], description=display_msg) if self.appConfig.mode != 'cli' else response[1:]
+            for resource in iterator:
                 # Create a dictionary for each row, mapping column names to values
                 # This step transforms the Athena query results into a format suitable for a pandas DataFrame
                 data_dict = {
