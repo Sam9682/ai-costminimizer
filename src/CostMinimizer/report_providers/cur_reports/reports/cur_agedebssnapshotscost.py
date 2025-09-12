@@ -164,7 +164,7 @@ class CurAgedebssnapshotscost(CurBase):
             else:
                 display_msg = ''
 
-            iterator = track(response[1:], description=display_msg) if self.appConfig.mode != 'cli' else response[1:]
+            iterator = track(response[1:], description=display_msg) if self.appConfig.mode == 'cli' else response[1:]
             for resource in iterator:
                 # try catch block to get the snapshot info using self.snapshot
                 try:

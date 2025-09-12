@@ -96,7 +96,7 @@ class TaEccinstancesconsolidationforsqlserver(TaBase):
             self.report_result.append({'Name': Name, 'Data': pd.DataFrame(), 'Type': type})
         else:
             display_msg = f'[green]Running Trusted Advisor Report: {Name} / {self.appConfig.selected_regions}[/green]'
-            iterator = track(response['result']['flaggedResources'], description=display_msg) if self.appConfig.mode != 'cli' else response['result']['flaggedResources']
+            iterator = track(response['result']['flaggedResources'], description=display_msg) if self.appConfig.mode == 'cli' else response['result']['flaggedResources']
             for resource in iterator:
                 data_dict = {
                     self.get_required_columns()[0]: resource['metadata'][0],

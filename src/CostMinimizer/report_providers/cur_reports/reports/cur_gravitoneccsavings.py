@@ -269,7 +269,7 @@ class CurGravitoneccsavings(CurBase):
                 display_msg = f'[green]Running Cost & Usage Report: {report_name} / {self.appConfig.selected_regions}[/green]'
             else:
                 display_msg = ''
-            iterator = track(response[1:], description=display_msg) if self.appConfig.mode != 'cli' else response[1:]
+            iterator = track(response[1:], description=display_msg) if self.appConfig.mode == 'cli' else response[1:]
             for resource in iterator:
                 if self.including_resource_id:
                     current_cost = float(resource['Data'][7]['VarCharValue'])

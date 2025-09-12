@@ -247,7 +247,7 @@ class CeBase(ReportBase, ABC):
                 
             rows = []
             display_msg = f'[green]Running CostExplorer Report: {Name} / {self.appConfig.selected_regions}[/green]'
-            iterator = track(results, description=display_msg) if self.appConfig.mode != 'cli' else results
+            iterator = track(results, description=display_msg) if self.appConfig.mode == 'cli' else results
             for i in iterator:
                 for v in i['RecommendationDetails']:
                     row = v['InstanceDetails'][list(v['InstanceDetails'].keys())[0]]
@@ -398,7 +398,7 @@ class CeBase(ReportBase, ABC):
         rows = []
         sort = ''
         display_msg = f'[green]Running CostExplorer Report: {Name} / {self.appConfig.selected_region}[/green]'
-        iterator = track(results, description=display_msg) if self.appConfig.mode != 'cli' else results
+        iterator = track(results, description=display_msg) if self.appConfig.mode == 'cli' else results
         for v in iterator:
             row = {'date':v['TimePeriod']['Start']}
             sort = v['TimePeriod']['Start']

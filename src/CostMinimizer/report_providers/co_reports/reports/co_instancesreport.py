@@ -160,7 +160,7 @@ class CoInstancesreport(CoBase):
         else:
             display_msg = ''
 
-        iterator = track(recommendation_list, description=display_msg) if self.appConfig.mode != 'cli' else recommendation_list
+        iterator = track(recommendation_list, description=display_msg) if self.appConfig.mode == 'cli' else recommendation_list
         for recommendation in iterator:
                 data_dict = {}
                 data_dict['accountId'] = recommendation['accountId']
