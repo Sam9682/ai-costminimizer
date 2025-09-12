@@ -324,7 +324,9 @@ class CowReportController(CowReportControllerBase):
         self.appConfig.console.status(json.dumps(enabled_report_request))
 
         for provider in self.report_providers:
-            self.appConfig.console.print(f"\n[yellow]{provider.long_name(self).ljust(120, '-')}")
+            # if appli Mode is CLI
+            if self.appConfig.mode == 'cli':
+                self.appConfig.console.print(f"\n[yellow]{provider.long_name(self).ljust(120, '-')}")
             self.logger.info('Running report provider: %s', provider.name())
 
             if provider.name() not in self.enabled_reports.values():
@@ -353,7 +355,9 @@ class CowReportController(CowReportControllerBase):
                 continue
 
             #run mandatory reports required for pptx generation. (PowerPoint reports)
-            self.appConfig.console.print(f'\n[green]Running [yellow]PowerPoint reports [green]for [yellow]{p.name()} [green]provider...')
+            # if appli Mode is CLI
+            if self.appConfig.mode == 'cli':
+                self.appConfig.console.print(f'\n[green]Running [yellow]PowerPoint reports [green]for [yellow]{p.name()} [green]provider...')
             p.mandatory_reports(type='base')
             
             #run each providers query logic
