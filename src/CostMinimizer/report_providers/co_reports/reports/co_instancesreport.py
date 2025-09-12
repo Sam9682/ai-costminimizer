@@ -153,7 +153,7 @@ class CoInstancesreport(CoBase):
         
         # Create EC2 client to get instance details
         # Create boto3 EC2 client 
-        ec2_client = self.appConfig.get_client('ec2', region_name=region[0])
+        ec2_client = self.appConfig.get_client('ec2', region_name=region)
 
         if display:
             display_msg = f'[green]Running Compute Optimizer Report: {report_name} / {region}[/green]'
