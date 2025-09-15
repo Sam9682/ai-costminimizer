@@ -3,6 +3,9 @@ Description: |
   Windows Workstation for CostMinimizer Workshop - Pre-configured Windows instance
   This template creates a Windows Server 2022 instance with CostMinimizer tools pre-installed.
   The instance includes Python, Git, VS Code, AWS CLI, and all necessary dependencies.
+    
+  Cost Minimizer installation and initialization takes approximately 13 minutes after boot to complete. 
+  Consult C:\UserDataComplete.txt and C:\UserDataLog.txt to check if it has finished !
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -165,7 +168,16 @@ Resources:
           Write-Host "Starting EC2 User Data Script Execution at $(Get-Date)"
 
           # Show persistent notification to User Administrator
-          msg Administrator "Cost Minimizer initialization in progress: Please wait approximately 13 minutes after boot to complete. Consult C:\UserDataLog.txt to check if it has finished !"
+          Add-Type -AssemblyName System.Windows.Forms
+          Add-Type -AssemblyName System.Drawing
+          $notification = New-Object System.Windows.Forms.NotifyIcon
+          $notification.Icon = [System.Drawing.SystemIcons]::Information
+          $notification.Visible = $true
+          $message = "Cost Minimizer initialization in progress: Please wait approximately 13 minutes after boot to complete. Consult C:\UserDataLog.txt to check if it has finished !"
+          $title = "CostMinimizer initialization in progress..."
+          $notification.BalloonTipTitle = $title
+          $notification.BalloonTipText = $message
+          $notification.ShowBalloonTip(720000)
 
           # Wait for network connectivity
           Write-Host "Waiting for network connectivity..."
