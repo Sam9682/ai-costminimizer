@@ -133,7 +133,7 @@ _Note: if you are using the --profile option, tell Q Chat to use --profile and t
 q chat "can you install the tool CosMinimizer that is availble in the repository https://github.com/aws-samples/sample-costminimizer.git. 
 
 Clone this repository, then follow the intallation and configuration instructions contained in ~/sample-costminimizer/README.md to proceed to the installation and configuration of the tool,
-following instructions written in the section called Option 2) Bash 'command instructions, Manual option'."
+following instructions written in the section called Option 3) Bash 'command instructions, Manual option'."
 ```
 
 #### Option 3) Bash command instructions, Manual option
