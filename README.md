@@ -48,9 +48,67 @@ The tool combines data from multiple AWS cost management services to provide a h
 
 
 ### Installation and configuration
-There are 2 options to install and configure the tool: automatic with Q CLI and manual:
+There are 3 options to install and configure the tool: Windows EC2 instance (recommended), automatic with Q CLI, and manual:
 
-##### Option 1) Automatic with Q CLI 
+##### Option 1) Windows EC2 Instance (Recommended)
+
+**Quick Setup**: Deploy a pre-configured Windows Server 2022 EC2 instance with CostMinimizer automatically installed.
+
+**Prerequisites**:
+- AWS account with EC2 permissions
+- EC2 Key Pair created in your target region (for RDP access)
+- CloudFormation deployment permissions
+
+**Deployment Steps**:
+
+1. **Create EC2 Key Pair** (if you don't have one):
+   ```bash
+   # Via AWS CLI
+   aws ec2 create-key-pair --key-name keypaircostminimizer --query 'KeyMaterial' --output text > keypaircostminimizer.pem
+   
+   # Or via AWS Console: EC2 > Key Pairs > Create Key Pair
+   ```
+
+2. **Deploy CloudFormation Template**:
+   ```bash
+   # Clone repository
+   git clone https://github.com/aws-samples/sample-costminimizer.git
+   cd sample-costminimizer
+   
+   # Deploy the Windows workstation
+   aws cloudformation create-stack \
+     --stack-name costminimizer-windows-workstation \
+     --template-body file://costminimizer-windows-workstation-readymade.yaml \
+     --parameters ParameterKey=KeyPairName,ParameterValue=keypaircostminimizer \
+     --capabilities CAPABILITY_IAM
+   ```
+
+3. **Access Your Windows Workstation**:
+   ```bash
+   # Get instance details
+   aws cloudformation describe-stacks --stack-name costminimizer-windows-workstation
+   
+   # Get Windows password (replace INSTANCE-ID)
+   aws ec2 get-password-data --instance-id INSTANCE-ID --priv-launch-key keypaircostminizer.pem
+   
+   # Connect via RDP using the decrypted password
+   ```
+
+**What's Included**:
+- Windows Server 2022 with 50GB storage
+- Python 3.x, Git, VS Code, AWS CLI pre-installed
+- CostMinimizer automatically configured
+- All required dependencies and tools
+- IAM role with necessary AWS permissions
+- Security group configured for RDP access
+
+**Setup Time**: ~15 minutes after instance launch
+
+**Monitoring Installation**: Check `C:\UserDataLog.txt` on the instance to monitor installation progress.
+
+**Cost**: Approximately $0.17/hour for t3.xlarge instance (varies by region)
+
+##### Option 2) Automatic with Q CLI 
 
 **Credentials**: 
 
@@ -78,7 +136,7 @@ Clone this repository, then follow the intallation and configuration instruction
 following instructions written in the section called Option 2) Bash 'command instructions, Manual option'."
 ```
 
-#### Option 2) Bash command instructions, Manual option
+#### Option 3) Bash command instructions, Manual option
 
 #### 2.1 Clone the repository
 ```
