@@ -288,7 +288,7 @@ internals:
   genAI:
     default_provider: bedrock
     default_provider_region: us-east-1
-    default_genai_model: anthropic.claude-3-5-sonnet-20240620-v1:0
+    default_genai_model: anthropic.claude-3-5-sonnet-20241022-v2:0
     inference_profile_arn: 
   version: 0.0.1
 """

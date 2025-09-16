@@ -43,7 +43,7 @@ class Bedrock(ProviderBase):
         self._throttling_exception = self.client.exceptions.ThrottlingException
 
         # Configure default model settings
-        self.model_id = self.appConfig.internals.get('internals', {}).get('genAI', {}).get('default_genai_model', 'anthropic.claude-sonnet-4-20250514-v1:0') 
+        self.model_id = self.appConfig.internals.get('internals', {}).get('genAI', {}).get('default_genai_model', 'anthropic.claude-3-5-sonnet-20241022-v2:0') 
         self.max_tokens = self.appConfig.internals.get('internals', {}).get('genAI', {}).get('max_tokens', 4096)
         self.temperature = self.appConfig.internals.get('internals', {}).get('genAI', {}).get('temperature', 0.7)
 
@@ -62,7 +62,7 @@ class Bedrock(ProviderBase):
                 )
     
     def _set_message(self, question, base64_file, type_of_file) -> list:
-        if base64_file is not None:
+        if base64_file is not None and len(base64_file) > 0:
             return [{'role': 'user','content': [{'text':question},{'document': {'format': type_of_file, 'name': f'{__tooling_name__}-report-analysis', 'source': {'bytes': base64_file }}}]}]   
         else:
             return [{'role': 'user','content': [{'text':question}]}]      
