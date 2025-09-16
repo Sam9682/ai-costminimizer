@@ -3,6 +3,11 @@ Description: |
   Windows Workstation for CostMinimizer Workshop - Pre-configured Windows instance
   This template creates a Windows Server 2022 instance with CostMinimizer tools pre-installed.
   The instance includes Python, Git, VS Code, AWS CLI, and all necessary dependencies.
+  
+  Network Configuration:
+  - Optionally specify VPC ID and Subnet ID for custom network placement
+  - If VPC/Subnet parameters are left empty, the template uses the default VPC and auto-selects a subnet
+  - PREREQUISITE: A default VPC must exist in the region if custom VPC/Subnet are not specified
     
   Cost Minimizer installation and initialization takes approximately 15 minutes after boot to complete. 
   Consult C:\UserDataComplete.txt and C:\UserDataLog.txt to check if it has finished !
