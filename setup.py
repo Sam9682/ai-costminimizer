@@ -24,7 +24,7 @@ setup(
     version=version,
     description=description,
     author='CostMinimizer Tooling Team',
-    maintainer_email='slepetre@amazon.com',
+    maintainer_email='aws-co-tooling-core@amazon.com',
     author_email='aws-co-tooling-core@amazon.com',
     url='https://github.com/aws-samples/sample-costminimizer.git',
     package_dir= { '': 'src/'},
