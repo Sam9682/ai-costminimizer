@@ -32,6 +32,12 @@ class App:
         #setup config
         from .config.config import Config 
         self.appConfig = Config()
+        '''
+        Setup default path locations; report time; 
+        create database path locations; defaults; create tables
+        download pricing information
+        Set config values and set internal parameters 
+        '''
         self.appConfig.setup(self.mode)
 
         #parse_arguments
@@ -41,9 +47,17 @@ class App:
         
         #setup auth manager and authentication
         #TODO this should not be handled inside config
+        '''
+        Determine if we are inside a ec2 instance, ecs container or local workstation and determine permissions
+        Determine intended region to select
+        Create boto sessions
+        '''
         self.appConfig.setup_authentication()
         
-        #initialize the database
+        '''
+        Setup automatic configuration of tool and database
+        Write reports to databasde
+        '''
         self.appConfig.database_initial_defaults()
 
     def _handle_standard_mode(self, cmd: Any) -> Any:
