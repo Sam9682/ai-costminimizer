@@ -110,8 +110,9 @@ class Authentication:
         self.alerts = AlertState()
 
         self.is_ec2_instance, self.instance_id = self.is_running_on_ec2()
+        self.is_ecs_container, self.container_id = self.is_running_on_ecs()
 
-        if not self.is_ec2_instance:
+        if not self.is_ec2_instance and not self.is_ecs_container:
             self.set_aws_config_file_osenviron()
 
     def set_aws_config_file_osenviron(self, config_filename:Path = None) -> None: 
@@ -395,3 +396,41 @@ class Authentication:
                 return True, instance_id
             except requests.exceptions.RequestException:
                 return False, None
+    
+    def is_running_on_ecs(self):
+        """Check if the code is running inside an AWS ECS container.
+        
+        Returns:
+            tuple: (is_ecs_container: bool, container_id: str)
+        """
+        try:
+            # Check for ECS metadata URI environment variable
+            metadata_uri = os.environ.get('ECS_CONTAINER_METADATA_URI_V4')
+            if not metadata_uri:
+                metadata_uri = os.environ.get('ECS_CONTAINER_METADATA_URI')
+            
+            if metadata_uri:
+                # Query ECS metadata endpoint
+                response = requests.get(metadata_uri, timeout=2)
+                if response.status_code == 200:
+                    metadata = response.json()
+                    container_id = metadata.get('DockerId', metadata.get('ContainerID', 'unknown'))
+                    return True, container_id
+            
+            # Check for ECS task metadata file
+            if os.path.exists('/proc/1/cgroup'):
+                with open('/proc/1/cgroup', 'r') as f:
+                    content = f.read()
+                    if 'ecs' in content.lower():
+                        # Extract container ID from cgroup path
+                        for line in content.split('\n'):
+                            if 'docker' in line and len(line.split('/')) > 2:
+                                container_id = line.split('/')[-1][:12]  # First 12 chars of container ID
+                                return True, container_id
+                        return True, 'unknown'
+            
+            return False, None
+            
+        except Exception as e:
+            self.logger.debug(f"Error checking ECS environment: {e}")
+            return False, None
