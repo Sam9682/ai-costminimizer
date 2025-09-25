@@ -128,7 +128,7 @@ class Config(Singleton):
             cls.console.print(error_message)
             sys.exit(0)
         
-        if not cls.tool_configuration_status():
+        if not cls.tool_configuration_status() or cls.arguments_parsed.auto_update_conf:
             if cls.prompt_for_automated_configuration():
                 try:
                     cls.automate_launch_cow_cust_configure()
@@ -558,8 +558,29 @@ internals:
                 
     def automate_launch_cow_cust_configure(cls) -> tuple:
         """
-        Automatically configure COW customer settings using current AWS session credentials.
+        Automatically configure COW customer settings. There is an a order to automatic configuration.  
+         
+        1 - using current AWS session credentials - attempt to get information from boto session sts
+        2 - If the cm_autoconfig.json file exists, override any previous configuration items with values from this file
+        3 - If we have access to parameters in the Systems Manager parameter store, override any configuraiton with values from the parameter store
         """
+        cow_authentication = Authentication()
+
+        configuration_from_sts = cls.automate_cow_configure_from_sts()
+
+        configuration_from_file = cls.automate_cow_configuration_from_file()
+
+        configuration_from_ssm_parameter_store = cls.automate_cow_configuration_from_ssm()
+
+        #create awscli config profiles file
+        cow_authentication.recreate_all_profiles()
+
+        #re-populate cls.config dictionary with account values
+        cls._setup_user_configuration()      
+
+        return configuration_from_sts['aws_cow_account']
+        
+    def automate_cow_configure_from_sts(cls):
         # retrieve the default credentials of current session
         # Create an STS client
         sts_client = cls.auth_manager.aws_cow_account_boto_session.client('sts')
@@ -584,8 +605,6 @@ internals:
             aws_account_configuration['aws_cow_profile'] = cls.internals['internals']['boto']['default_profile_name']
             aws_account_configuration['sm_secret_name'] = cls.internals['internals']['boto']['default_secret_name']
 
-            cow_authentication = Authentication()
-
             if not cls.report_output_directory.is_dir():
                 if cls.installation_type == 'local_install':
                     #when running in the container we will not be able to create this directory as it lives outside the container
@@ -596,12 +615,8 @@ internals:
 
             #insert account values into database
             cls.insert_automated_configuration(aws_account_configuration)
-
-            #create awscli config profiles file
-            cow_authentication.recreate_all_profiles()
-
-            #re-populate cls.config dictionary with account values
-            cls._setup_user_configuration()            
+            
+            return aws_account_configuration
 
         except Exception as e:
             cls.console.print(f"[red]Error: {e}[/red]")
@@ -609,7 +624,8 @@ internals:
             cls.logger.info(f"Launch 'aws configure' or set values for credentials variables AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY")
             raise(e)
 
-        
+    def automate_cow_configuration_from_file(cls):
+        #Obtain configuration from cm_autoconfig.json file
         automatic_configuration_import_file = cls.report_output_directory / cls.internals['internals']['results_folder']['automatic_configuration_from_file_filename']
         if automatic_configuration_import_file.is_file():
             with open(automatic_configuration_import_file, "r", encoding="utf-8") as f:
@@ -622,10 +638,38 @@ internals:
                 cls.console.print(f"[red]Failed to import config values from file {str(automatic_configuration_import_file)}")
                 cls.logger.info(f"Failed to import config values from file {str(automatic_configuration_import_file)}")
                 raise(e)
-
-
-        return account_id
         
+        return automatic_configuration_data
+
+    def automate_cow_configuration_from_ssm(cls, prefix='pg-'):
+        ssm_client = cls.auth_manager.aws_cow_account_boto_session.client('ssm')
+        
+        try:
+            ssm_parameters = ssm_client.describe_parameters()
+        except:
+            cls.logger.info(f'Check Permissions - Unable to obtain parameters from SSM Parameter Store')
+
+        configuration_from_ssm = {}
+        try:
+            for parameter in ssm_parameters['Parameters']:
+                if parameter['Name'].startswith(prefix):
+                    response = ssm_client.get_parameter(Name=parameter['Name'], WithDecryption=True)
+                    parameter_name = parameter['Name'].replace(prefix, '')
+                    parameter_value = response['Parameter']['Value']
+
+                    configuration_from_ssm[parameter_name] = parameter_value
+            
+            if configuration_from_ssm:
+                cls.logger.info(f'Obtained configuration from SSM Parameter Store')
+                cls.console.print(f'[green]Obtained configuration from SSM Parameter Store[/green]')
+                cls.insert_automated_configuration(configuration_from_ssm)
+            else:
+                cls.logger.info(f'No parameters found in SSM Parameter Store with prefix {prefix}')
+        except:
+            raise
+
+        return configuration_from_ssm
+
     def insert_automated_configuration(cls, configuration) -> None:
         """
         Insert automated configuration into the database.

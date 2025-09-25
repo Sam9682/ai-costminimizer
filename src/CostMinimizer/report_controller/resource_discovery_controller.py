@@ -92,7 +92,6 @@ class ResourceDiscoveryController:
             self.appConfig.console.print(f'Reading Athena, the type of CUR is: {l_type_of_CUR}')
         return l_type_of_CUR
 
-
     def run(self, report_controller):
         '''
         Run resource discovery. CUR is optional - will only run if CUR is in providers.
