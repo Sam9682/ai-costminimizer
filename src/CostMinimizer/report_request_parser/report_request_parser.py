@@ -270,7 +270,7 @@ class ToolingReportRequest:
     def load_report_request_file(self) -> dict:
             
         if self.appConfig.mode == 'cli':
-            with self.config.console.status(f"Report Parser: Importing report request for customer: {self.selected_customer}"):
+            with self.appConfig.console.status(f"Report Parser: Importing report request for customer: {self.selected_customer}"):
                 sleep(1.5) #let user see progress
                 try:
                     report_request = import_yaml_file(self.report_request_input_file)
