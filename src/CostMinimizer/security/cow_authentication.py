@@ -39,7 +39,7 @@ class AuthenticationManager:
         self.config = Config()
         self.logger = logging.getLogger(__name__)
 
-    def get_region_from_cli_agrument(self) -> str:
+    def get_region_from_cli_argument(self) -> str:
         return self.config.arguments_parsed.region
     
     def get_region_from_profiles(self) -> str:

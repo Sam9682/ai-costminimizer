@@ -570,6 +570,7 @@ internals:
 
         configuration_from_file = cls.automate_cow_configuration_from_file()
 
+        # retrieve region from sts configuration if any
         configuration_from_ssm_parameter_store = cls.automate_cow_configuration_from_ssm()
 
         #create awscli config profiles file
@@ -642,7 +643,11 @@ internals:
         return automatic_configuration_data
 
     def automate_cow_configuration_from_ssm(cls, prefix='pg-'):
-        ssm_client = cls.auth_manager.aws_cow_account_boto_session.client('ssm')
+        # read region value from sts values, it there is no value then set it to us-east-1
+        l_region_name = cls.auth_manager.get_region_from_cli_argument()
+        if not l_region_name:
+            l_region_name = 'us-east-1'
+        ssm_client = cls.auth_manager.aws_cow_account_boto_session.client('ssm', region_name=l_region_name)
         
         try:
             ssm_parameters = ssm_client.describe_parameters()
