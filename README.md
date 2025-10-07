@@ -380,6 +380,34 @@ With MCP integration, you can ask AI assistants questions like:
 
 **Note**: Ensure your AWS credentials have the required permissions listed in the IAM Permissions section below.
 
+
+#### Troubleshooting
+1. Authentication Issues
+Error: "Unable to validate credentials"
+  ```bash
+  # Verify AWS credentials
+  aws configure list
+  aws sts get-caller-identity        # CostMinimizer is using the AWS credentials defined in environment variables or .aws/
+
+  # Reconfigure CostMinimizer
+  CostMinimizer --configure --auto-update-conf    # Auto update the values of the configuration of the tooling
+                                                  # Retreives the credentials from the environment variables, and configure tooling with these values
+  ```
+
+2. Report Generation Failures
+- Check log file at `~/cow/CostMinimizer.log`
+- Verify required AWS permissions
+- Ensure Cost Explorer API is enabled
+- Ensure CUR parameters are correct
+- Ensure Compute Optimizer is enabled
+
+3. Database Issues
+- Delete the SQLite database file and reconfigure:
+  ```bash
+  rm ~/cow/CostMinimizer.db
+  CostMinimizer --configure
+  ```
+
 ## Docker Deployment
 
 CostMinimizer can be containerized and deployed using Docker with Amazon ECR.
@@ -426,33 +454,6 @@ CostMinimizer can be containerized and deployed using Docker with Amazon ECR.
 
    ```
 
-
-#### Troubleshooting
-1. Authentication Issues
-Error: "Unable to validate credentials"
-  ```bash
-  # Verify AWS credentials
-  aws configure list
-  aws sts get-caller-identity        # CostMinimizer is using the AWS credentials defined in environment variables or .aws/
-
-  # Reconfigure CostMinimizer
-  CostMinimizer --configure --auto-update-conf    # Auto update the values of the configuration of the tooling
-                                                  # Retreives the credentials from the environment variables, and configure tooling with these values
-  ```
-
-2. Report Generation Failures
-- Check log file at `~/cow/CostMinimizer.log`
-- Verify required AWS permissions
-- Ensure Cost Explorer API is enabled
-- Ensure CUR parameters are correct
-- Ensure Compute Optimizer is enabled
-
-3. Database Issues
-- Delete the SQLite database file and reconfigure:
-  ```bash
-  rm ~/cow/CostMinimizer.db
-  CostMinimizer --configure
-  ```
 
 ## Data Flow
 CostMinimizer processes AWS cost data through multiple stages to generate comprehensive cost optimization recommendations.
