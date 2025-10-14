@@ -639,6 +639,8 @@ internals:
                 cls.console.print(f"[red]Failed to import config values from file {str(automatic_configuration_import_file)}")
                 cls.logger.info(f"Failed to import config values from file {str(automatic_configuration_import_file)}")
                 raise(e)
+        else:
+            return '{}'
         
         return automatic_configuration_data
 
