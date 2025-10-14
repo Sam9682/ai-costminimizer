@@ -42,9 +42,9 @@ fi
 echo
 
 # Activate virtual environment if it exists
-if [ -f ".venvBash/bin/activate" ]; then
+if [ -f ".venv/bin/activate" ]; then
     echo "Activating virtual environment..."
-    source .venvBash/bin/activate
+    source .venv/bin/activate
 fi
 
 # Set Python path
