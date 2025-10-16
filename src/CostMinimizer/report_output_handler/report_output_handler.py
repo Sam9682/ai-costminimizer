@@ -127,12 +127,19 @@ class ReportOutputHandlerBase:
             s3_client = self.appConfig.get_client('s3', region_name=self.appConfig.default_selected_region)
             
             # remove s3:// in front of s3_bucket_name
-            s3_bucket_name = s3_bucket_name.replace('s3://', '').replace('/', '')
+            s3_bucket_name = s3_bucket_name.replace('s3://', '').replace('/', '').strip()
+
+            if self.appConfig.arguments_parsed.debug:
+                self.appConfig.console.print(f'[blue]Uploading {local_path} to s3://{s3_bucket_name}/{s3_key}')
 
             if os.path.isfile(local_path):
                 self.logger.info(f"Uploading file {local_path} to s3://{s3_bucket_name}/{s3_key}")
+                if self.appConfig.arguments_parsed.debug:
+                    self.appConfig.console.print(f'[blue]Uploading file {local_path} to s3://{s3_bucket_name}/{s3_key}')
                 s3_client.upload_file(str(local_path), s3_bucket_name, s3_key)
             elif os.path.isdir(local_path):
+                if self.appConfig.arguments_parsed.debug:
+                    self.appConfig.console.print(f'[blue]Uploading directory {local_path} to s3://{s3_bucket_name}/{s3_key}')
                 # Upload directory contents recursively
                 for root, dirs, files in os.walk(local_path):
                     for file in files:
@@ -145,6 +152,7 @@ class ReportOutputHandlerBase:
                         self.appConfig.console.print(f'[green]Uploading file {local_file_path} to s3://{s3_bucket_name}/{s3_file_key}')
         except Exception as e:
             self.logger.error(f"Error uploading to S3: {str(e)}")
+            self.appConfig.console.print(f'[red]Error uploading to S3: {str(e)}')
             raise
             
     def upload_report_directory_to_s3(self, bucket_name=None):
