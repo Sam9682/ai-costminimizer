@@ -86,7 +86,7 @@ class App:
                 return self._handle_standard_mode(cmd)
         except Exception as e:
             self.logger.error(f"An error occurred: {str(e)}")
-            print(f"An unexpected error occurred. Please check the logs for more information.")
+            print(f"An unexpected error occurred. Please check the logs for more information: {str(e)}.")
             # print(f"Error: {e}")
             self.appConfig.console.print(f'\n[red]\n{e}[/red]')
             return None
