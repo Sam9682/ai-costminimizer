@@ -151,6 +151,10 @@ class RunToolingRun:
         other reports require regions to be selected by the user
         '''
         enabled_reports = self.appConfig.reports.get_all_enabled_reports().keys()
+
+        if self.appConfig.arguments_parsed.debug:
+            self.appConfig.console.print(f'[blue]Enabled Reports: {enabled_reports}')
+
         for report in self.appConfig.report_classes:
             report_instance = report(self.appConfig)
             if report_instance.name() in enabled_reports and report_instance.require_user_provided_region():
@@ -268,7 +272,10 @@ class RunToolingRun:
 
         self.appConfig.report_request_from_custom_yaml = False
 
-        self.logger.info(f'Discovering app mode....')
+        msg = f'Discovering app mode....'
+        self.logger.info(msg)
+        if self.appConfig.arguments_parsed.debug:
+            self.appConfig.console.print(msg)
         if self.appConfig.default_report_request.is_file():
             self._set_report_request_mode('default')
         else:
@@ -278,6 +285,10 @@ class RunToolingRun:
         if self.appConfig.arguments_parsed.yaml:
             self._set_report_request_mode('default')
             self.appConfig.report_request_from_custom_yaml = True
+        
+        if self.appConfig.arguments_parsed.debug:
+            self.appConfig.console.print(f'Report request mode is {self.appConfig.report_request_mode}.')
+
         return self.appConfig.report_request_mode
 
     def display_available_reports_menu(self):
@@ -461,6 +472,9 @@ class RunToolingRun:
                 if self.appConfig.arguments_parsed.yaml == 'ssm':
                     #Obtain S3 bucket from SSM parameter; Fetch yaml file from S3 then import
 
+                    if self.appConfig.arguments_parsed.debug:
+                        self.appConfig.console.print(f'[blue]Parsing report data source from SSM: {self.appConfig.arguments_parsed.yaml}')
+
                     datasource = 'yaml'
                     from ..report_request_parser.report_request_from_ssm import ReportRequestFromSSM
                     reports = ReportRequestFromSSM().get_report_request()
@@ -472,6 +486,9 @@ class RunToolingRun:
                 elif self.appConfig.arguments_parsed.yaml:
                     #Try with data from file; location of file from arguments
 
+                    if self.appConfig.arguments_parsed.debug:
+                        self.appConfig.console.print(f'[blue]Parsing report data source from YAML file: {self.appConfig.arguments_parsed.yaml}')
+
                     datasource = 'yaml'
                     report_request = ToolingReportRequest(
                         self.appConfig.arguments_parsed.yaml,
@@ -480,6 +497,10 @@ class RunToolingRun:
                         )
                 elif self.appConfig.arguments_parsed.checks:
                     # Use the checks provided via command line
+
+                    if self.appConfig.arguments_parsed.debug:
+                        self.appConfig.console.print(f'[blue]Parsing report data source from command line: {self.appConfig.arguments_parsed.checks}')
+
                     if ('ALL' in self.appConfig.arguments_parsed.checks):
                         l_list_reports =  [i.Name for i in self.appConfig.database.get_available_reports()]
                     else:
@@ -495,6 +516,9 @@ class RunToolingRun:
 
                 elif self.appConfig.default_report_request.is_file():
                     #Try file from the cow_internals default location
+
+                    if self.appConfig.arguments_parsed.debug:
+                        self.appConfig.console.print(f'[blue]Parsing report data source from file location: {str(self.appConfig.default_report_request)}')
                     
                     datasource = 'yaml'
                     self.appConfig.datasource = datasource
@@ -503,6 +527,9 @@ class RunToolingRun:
                 else:
                     #Try with data from the input menu
 
+                    if self.appConfig.arguments_parsed.debug:
+                        self.appConfig.console.print(f'[blue]Parsing report data source from input menu')
+                    
                     datasource = 'database'
                     menu_selected_reports = self.display_available_reports_menu()
                     #set customer and report requests
