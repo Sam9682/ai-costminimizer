@@ -478,6 +478,10 @@ class RunToolingRun:
                     datasource = 'yaml'
                     from ..report_request_parser.report_request_from_ssm import ReportRequestFromSSM
                     reports = ReportRequestFromSSM().get_report_request()
+                    
+                    if self.appConfig.arguments_parsed.debug:
+                        self.appConfig.console.print(f'[blue]Report structure from SSM S3 Bucket: {reports}')
+                    
                     report_request = ToolingReportRequest(
                         reports['reports'],
                         read_from_database=False,
