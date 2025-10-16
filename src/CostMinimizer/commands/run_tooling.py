@@ -517,8 +517,9 @@ class RunToolingRun:
 
                 if self.appConfig.debug:
                     print(f'[blue underline]Report data source from {datasource} : {datasource_file}')
-
-                self.logger.info(f'Running in {self.appConfig.mode} mode: Report data source from {datasource} : {datasource_file}')
+                msg = f'Running in {self.appConfig.mode} mode: Report data source from {datasource} : {datasource_file}'
+                self.logger.info(msg)
+                self.appConfig.console.print(msg)
                 return report_request.get_all_reports()
             except IOError as e:
                 self.logger.error(f"Error accessing file: {str(e)}")
