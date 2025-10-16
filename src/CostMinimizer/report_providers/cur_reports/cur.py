@@ -96,17 +96,27 @@ class CurReports(ReportProviderBase):
             self.cur_table = self.appConfig.arguments_parsed.cur_table if (hasattr(self.appConfig.arguments_parsed, 'cur_table') and self.appConfig.arguments_parsed.cur_db is not None) else self.appConfig.config['cur_table']
             self.cur_region = self.appConfig.arguments_parsed.cur_region if (hasattr(self.appConfig.arguments_parsed, 'cur_region')  and self.appConfig.arguments_parsed.cur_region is not None) else self.appConfig.config['cur_region']
         except KeyError as e:
-            self.logger.error(f'MissingCurConfigurationParameterException: Missing CUR parameter in report requests: {str(e)}')
+            msg = f'MissingCurConfigurationParameterException: Missing CUR parameter in report requests: {str(e)}'
+            self.logger.error(msg)
+            if self.appConfig.arguments_parsed.debug:
+                self.appConfig.console.print(f'[red]{msg}[/red]')
             raise
 
         #Athena table name
         self.fqdb_name = f'{self.cur_db}.{self.cur_table}'
-        self.logger.info(f'Setting {self.name()} report table_name to: {self.fqdb_name}')
+        msg = f'Setting {self.name()} report table_name to: {self.fqdb_name}'
+        self.logger.info(msg)
+        if self.appConfig.arguments_parsed.debug:
+            self.appConfig.console.print(f'[blue]{msg}[/blue]')
+
 
         #Athena database connection
         self._cursor = self._make_cursor()
 
-        self.logger.info(f'setting query parameters for {self.name()}')
+        msg = f'setting query parameters for {self.name()}'
+        self.logger.info(msg)
+        if self.appConfig.arguments_parsed.debug:
+            self.appConfig.console.print(f'[blue]{msg}[/blue]')
         self.set_query_parameters() #create parameters to pass to each query
 
     def run(

@@ -55,7 +55,14 @@ class ResourceDiscoveryController:
         athena_client = self.appConfig.get_client('athena', region_name=self.appConfig.default_selected_region)
         
         #This is not the best way to get to the run_athena_query function; perhaps restructure this in future
-        report = cur_provider.import_reports()[0](self.appConfig)
+        try:
+            report = cur_provider.import_reports()[0](self.appConfig)
+        except Exception as e:
+            msg = f'Unable to import CUR reports: {e}'
+            self.logger.error(msg)
+            if self.appConfig.arguments_parsed.debug:
+                self.appConfig.console.print(f'[red]{msg}[/red]')
+            raise Exception(f'Unable to determine CUR report type: {str(e)} \n Please verify the tooling configuration !')
         
         # "coast-data-export-focus-6c77d700"."coast-focus"
         SQL = f"show columns from `{cur_provider.cur_table.strip()}`;"
@@ -63,7 +70,10 @@ class ResourceDiscoveryController:
         try:
             result = report.run_athena_query(athena_client, SQL, self.appConfig.config['cur_s3_bucket'], cur_provider.cur_db.strip())
         except Exception as e:
-            self.logger.error(f'Unable to determine CUR report type: {str(e)}')
+            msg = f'Unable to run Athena CUR reports: {e}'
+            self.logger.error(msg)
+            if self.appConfig.arguments_parsed.debug:
+                self.appConfig.console.print(f'[red]{msg}[/red]')
             raise Exception(f'Unable to determine CUR report type: {str(e)} \n Please verify the tooling configuration !')
         
         # from the list of columns names, verify if line_item_resource_id exists
@@ -108,6 +118,8 @@ class ResourceDiscoveryController:
                 cur_provider.setup()
                 self.cur_type = self.determine_cur_report_type(cur_provider)
                 self.precondition_reports_in_progress = cur_provider.run(additional_input_data = 'preconditioned')
+                if self.appConfig.mode == 'cli':
+                    self.appConfig.console.print(f'[green]Completed Cost & Usage Report: Resource Discovery (Precondition) Reports')
             # Replace the existing exception handling block with this:
             except Exception as e:
                 # Check if only CUR reports are being run
@@ -119,10 +131,14 @@ class ResourceDiscoveryController:
                 
                 if only_cur_requested:
                     # If only CUR is requested, stop execution and display error
-                    raise Exception(f'CUR processing failed: {str(e)}. Please verify the tooling configuration!')
+                    msg = f'CUR processing failed: {str(e)}. Please verify the tooling configuration!'
+                    if self.appConfig.arguments_parsed.debug:
+                        self.appConfig.console.print(f'[red]{msg}')
+                    raise Exception(msg)
                 else:
                     # If other providers are also requested, continue with warning
                     self.logger.warning(f'Skipping CUR processing due to error: {str(e)}')
-                    self.appConfig.console.print(f'[yellow]Skipping CUR processing due to error - continuing with other providers - {str(e)}')
+                    if self.appConfig.arguments_parsed.debug:
+                        self.appConfig.console.print(f'[yellow]Skipping CUR processing due to error - continuing with other providers - {str(e)}')
                     self.precondition_reports_in_progress = {'cur_preconditionavginstancecost.cur': False}
 

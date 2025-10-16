@@ -79,6 +79,12 @@ class ToolingArguments(Singleton):
             help=f"{Fore.GREEN}Specify a customer to run the tooling for{Style.RESET_ALL}",
             default=None)
         
+        # -d --debug; Debug mode
+        parser.add_argument(
+            '-d', '--debug', action='store_true',
+            help=f"{Fore.GREEN}Enable debug mode for verbose logging{Style.RESET_ALL}",
+            default=False)
+        
         # -f --input-files
         parser.add_argument(
             '-f', '--input-files', nargs='+',
