@@ -178,7 +178,8 @@ class CurReports(ReportProviderBase):
 
                 payer_str = "bill_payer_account_id='"+self.appConfig.config['aws_cow_account']+"' AND "
                 account_str = "line_item_usage_account_id LIKE '%' AND " #+self.appConfig.config['aws_cow_account']
-                region_str = "product_region='"+self.appConfig.selected_regions[0]+"' AND "
+                region = self.appConfig.selected_regions[0] if isinstance(self.appConfig.selected_regions, list) else self.appConfig.selected_regions
+                region_str = "product_region='"+region+"' AND "
 
                 if self.minDate == '' or self.maxDate == '':
                     # Get the months_back parameter if provided

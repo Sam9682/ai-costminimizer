@@ -168,7 +168,8 @@ class TaReports(ReportProviderBase):
 
         report_name = report_object.name()
         
-        display_msg = f'[green]Running Trusted Advisor Report: {report_name} / {self.appConfig.selected_regions[0]}[/green]'
+        region = self.appConfig.selected_regions[0] if isinstance(self.appConfig.selected_regions, list) else self.appConfig.selected_regions
+        display_msg = f'[green]Running Trusted Advisor Report: {report_name} / {region}[/green]'
         
         if cached:
             for _ in track(range(1), description=display_msg + ' [yellow]CACHED'):

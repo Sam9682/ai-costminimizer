@@ -95,7 +95,8 @@ class CoReports(ReportProviderBase):
     def setup(self, run_validation=False):
         '''setup instrcutions for cur report type'''
         try:
-            self.client = self.appConfig.auth_manager.aws_cow_account_boto_session.client('compute-optimizer', region_name=self.appConfig.selected_regions)
+            region = self.appConfig.selected_regions[0] if isinstance(self.appConfig.selected_regions, list) else self.appConfig.selected_regions
+            self.client = self.appConfig.auth_manager.aws_cow_account_boto_session.client('compute-optimizer', region_name=region)
         except Exception as e:
             self.appConfig.console.print(f'\n[red]Unable to establish boto session for Compute-Optimizer. \n{e}[/red]')
             self.logger.error('Unable to establish boto session for Compute-Optimizer.')
