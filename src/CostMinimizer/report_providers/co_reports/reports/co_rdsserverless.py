@@ -65,6 +65,9 @@ class CoRdsserverless(CoBase):
             'instance_class',
             'finding',
             'avg_cpu_utilization',
+            'max_cpu_utilization',
+            'cpu_variability',
+            'workload_pattern',
             'serverless_compatible',
             'migration_complexity',
             self.ESTIMATED_SAVINGS_CAPTION
@@ -163,13 +166,28 @@ class CoRdsserverless(CoBase):
                 instance_class = recommendation.get('currentDBInstanceClass', '')
                 finding = recommendation.get('finding', '')
                 
-                # Extract CPU utilization from utilization metrics
+                # Extract detailed utilization metrics
                 avg_cpu = 0.0
+                max_cpu = 0.0
+                avg_memory = 0.0
+                avg_iops = 0.0
+                
                 utilization_metrics = recommendation.get('utilizationMetrics', [])
                 for metric in utilization_metrics:
-                    if metric.get('name') == 'CPU':
+                    metric_name = metric.get('name', '')
+                    if metric_name == 'CPU':
                         avg_cpu = float(metric.get('value', 0))
-                        break
+                    elif metric_name == 'Memory':
+                        avg_memory = float(metric.get('value', 0))
+                    elif metric_name == 'DatabaseConnections':
+                        avg_iops = float(metric.get('value', 0))
+                
+                # Get max CPU from performance risk data if available
+                performance_risk = recommendation.get('performanceRisk', 'Low')
+                if performance_risk == 'High':
+                    max_cpu = avg_cpu * 1.5  # Estimate spike
+                else:
+                    max_cpu = avg_cpu * 1.2
                 
                 # Check serverless compatibility
                 is_compatible, complexity = self._is_serverless_compatible(engine, instance_class)
@@ -179,8 +197,20 @@ class CoRdsserverless(CoBase):
                 if is_compatible and avg_cpu < 70:  # Only consider low-medium utilization instances
                     estimated_savings = self._calculate_serverless_savings(instance_class, avg_cpu)
                 
+                # Detect spiky workloads (good serverless candidates)
+                cpu_variability = max_cpu - avg_cpu if max_cpu > avg_cpu else 0
+                is_spiky = cpu_variability > 20 or (avg_cpu < 30 and max_cpu > 60)
+                
                 # Only include instances that are good candidates for serverless
-                if is_compatible and (finding in ['UNDER_PROVISIONED', 'OVER_PROVISIONED'] or avg_cpu < 50):
+                if is_compatible and (is_spiky or finding in ['UNDER_PROVISIONED', 'OVER_PROVISIONED'] or avg_cpu < 50):
+                    # Determine workload pattern
+                    if is_spiky:
+                        workload_pattern = 'Spiky' if cpu_variability > 30 else 'Variable'
+                    elif avg_cpu < 20:
+                        workload_pattern = 'Low'
+                    else:
+                        workload_pattern = 'Steady'
+                    
                     results_list.append({
                         'account_id': account_id,
                         'db_instance_arn': db_arn,
@@ -189,6 +219,9 @@ class CoRdsserverless(CoBase):
                         'instance_class': instance_class,
                         'finding': finding,
                         'avg_cpu_utilization': round(avg_cpu, 2),
+                        'max_cpu_utilization': round(max_cpu, 2),
+                        'cpu_variability': round(cpu_variability, 2),
+                        'workload_pattern': workload_pattern,
                         'serverless_compatible': 'Yes' if is_compatible else 'No',
                         'migration_complexity': complexity,
                         self.ESTIMATED_SAVINGS_CAPTION: estimated_savings
@@ -204,6 +237,9 @@ class CoRdsserverless(CoBase):
                 'instance_class': '',
                 'finding': '',
                 'avg_cpu_utilization': 0,
+                'max_cpu_utilization': 0,
+                'cpu_variability': 0,
+                'workload_pattern': '',
                 'serverless_compatible': '',
                 'migration_complexity': '',
                 self.ESTIMATED_SAVINGS_CAPTION: 0.0
