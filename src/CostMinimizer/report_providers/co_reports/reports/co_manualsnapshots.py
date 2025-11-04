@@ -34,13 +34,30 @@ class CoManualsnapshots(CoBase):
 
     def long_description(self):
         return f'''AWS Manual Snapshots Analysis Report:
-        This report identifies EBS and RDS snapshots created outside of AWS Backup service.
-        The analysis includes:
-        - EBS snapshots not managed by AWS Backup
-        - RDS manual snapshots
-        - Cost analysis for manual snapshot storage
-        - Age and size analysis for cleanup recommendations
-        Use this report to identify manual snapshots that could be managed through AWS Backup for better governance.'''
+        This comprehensive report identifies EBS and RDS snapshots created outside of AWS Backup service, providing cost optimization and governance improvement opportunities.
+        
+        Detailed Snapshot Analysis:
+        • EBS volume snapshots not managed by AWS Backup service
+        • RDS manual database snapshots outside backup policies
+        • Snapshot age analysis with creation date tracking
+        • Storage size analysis and monthly cost calculations
+        • Creator identification through tag analysis
+        • Automated cost estimation (EBS: $0.05/GB/month, RDS: $0.095/GB/month)
+        
+        Governance Benefits:
+        • Centralized backup management through AWS Backup
+        • Automated retention policies and lifecycle management
+        • Cross-region backup replication capabilities
+        • Compliance and audit trail improvements
+        • Cost optimization through automated cleanup policies
+        
+        Cost Optimization Opportunities:
+        • Identifies orphaned snapshots consuming storage costs
+        • Highlights old snapshots that may no longer be needed
+        • Provides monthly cost impact for each manual snapshot
+        • Enables migration to AWS Backup for better cost control
+        
+        Use this report to consolidate snapshot management under AWS Backup, reduce manual overhead, improve compliance, and optimize storage costs.'''
 
     def _set_recommendation(self):
         self.recommendation = f'''Found {self.count_rows()} manual snapshots not managed by AWS Backup. Consider migrating to AWS Backup for better governance.'''
@@ -103,6 +120,10 @@ class CoManualsnapshots(CoBase):
     def sql(self, client, region, account, display=True, report_name=''):
         """Identify manual snapshots (non-AWS Backup)"""
         ttype = 'chart'
+        
+        # Initialize list_cols_currency for Excel formatting
+        self.list_cols_currency = [9]  # Column index for estimated savings (0-based: column 9 = ESTIMATED_SAVINGS_CAPTION)
+        
         results_list = []
         
         try:
@@ -184,7 +205,7 @@ class CoManualsnapshots(CoBase):
             })
 
         df = pd.DataFrame(results_list)
-        self.report_result.append({'Name': self.name(), 'Data': df, 'Type': ttype})
+        self.report_result.append({'Name': self.name(), 'Data': df, 'Type': ttype, 'DisplayPotentialSavings': True})
         return self.report_result
 
     def _is_aws_backup_snapshot(self, tags):
@@ -199,6 +220,43 @@ class CoManualsnapshots(CoBase):
 
     def _is_aws_backup_snapshot_rds(self, tags):
         """Check if RDS snapshot was created by AWS Backup"""
+        for tag in tags:
+            if tag['Key'] in ['aws:backup:source-resource', 'CreatedBy']:
+                if tag['Key'] == 'CreatedBy' and 'backup' in tag['Value'].lower():
+                    return True
+                elif tag['Key'] == 'aws:backup:source-resource':
+                    return True
+        return False
+
+    def _get_created_by(self, tags):
+        """Extract who created the snapshot from tags"""
+        for tag in tags:
+            if tag['Key'] == 'CreatedBy':
+                return tag['Value']
+        return 'Manual/Unknown'
+
+    def _get_created_by_rds(self, tags):
+        """Extract who created the RDS snapshot from tags"""
+        for tag in tags:
+            if tag['Key'] == 'CreatedBy':
+                return tag['Value']
+        return 'Manual/Unknown'
+
+    def set_chart_type_of_excel(self):
+        self.chart_type_of_excel = 'column'
+        return self.chart_type_of_excel
+
+    def get_range_categories(self):
+        return 2, 0, 2, 0
+
+    def get_range_values(self):
+        return 9, 1, 9, -1
+
+    def get_list_cols_currency(self):
+        return [9]
+
+    def get_group_by(self):
+        return [2]
         for tag in tags:
             if tag['Key'] in ['aws:backup:source-resource', 'CreatedBy']:
                 if tag['Key'] == 'CreatedBy' and 'backup' in tag['Value'].lower():

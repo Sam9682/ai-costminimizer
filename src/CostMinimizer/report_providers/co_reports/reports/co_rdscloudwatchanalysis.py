@@ -35,13 +35,23 @@ class CoRdscloudwatchanalysis(CoBase):
 
     def long_description(self):
         return f'''AWS RDS CloudWatch Spike Analysis Report:
-        This report provides detailed analysis of RDS instances using CloudWatch metrics to identify serverless candidates.
-        The analysis includes:
-        - Hourly CPU utilization patterns with statistical analysis
-        - Spike frequency and variability calculations
-        - IOPS and memory usage patterns
-        - Advanced serverless suitability scoring
-        Use this report for comprehensive spike pattern analysis to optimize serverless migrations.'''
+        This advanced report performs deep statistical analysis of RDS instances using 14 days of CloudWatch metrics to identify optimal serverless migration candidates.
+        
+        Comprehensive Metrics Analysis:
+        • Hourly CPU utilization patterns with statistical variance calculations
+        • Spike frequency analysis (instances with >2x average CPU spikes)
+        • Workload variability coefficient and standard deviation analysis
+        • IOPS patterns, memory usage, and database connection metrics
+        • Advanced serverless suitability scoring (0-100 scale)
+        
+        Workload Pattern Classification:
+        • Highly Spiky (>60 score): Excellent serverless candidates with up to 50% savings
+        • Moderately Spiky (40-60 score): Good candidates with 35% potential savings
+        • Low Utilization (<20% avg CPU): Good candidates regardless of spikes
+        • Variable Workloads: Fair candidates with 20% savings potential
+        • Steady Workloads: Poor serverless candidates
+        
+        This report provides the most detailed analysis available for RDS serverless migration decisions, using real CloudWatch data to predict serverless performance and cost benefits with high accuracy.'''
 
     def _set_recommendation(self):
         self.recommendation = f'''Found {self.count_rows()} RDS instances with detailed CloudWatch analysis. See the report for spike patterns.'''
@@ -107,7 +117,12 @@ class CoRdscloudwatchanalysis(CoBase):
     def get_rds_instances(self, region):
         """Get all RDS instances in the region"""
         try:
-            rds = boto3.client('rds', region_name=region)
+            # if region is a list of regions, then select the first elem else use region
+            if isinstance(region, list):
+                l_region = region[0]
+            else:
+                l_region = region
+            rds = boto3.client('rds', region_name=l_region)
             response = rds.describe_db_instances()
             return response.get('DBInstances', [])
         except Exception as e:
@@ -118,8 +133,12 @@ class CoRdscloudwatchanalysis(CoBase):
         """Get detailed CloudWatch metrics for spike analysis"""
         end_time = datetime.utcnow()
         start_time = end_time - timedelta(days=days)
-        
-        cloudwatch = boto3.client('cloudwatch', region_name=region)
+        # if region is a list of regions, then select the first elem else use region
+        if isinstance(region, list):
+            l_region = region[0]
+        else:
+            l_region = region
+        cloudwatch = boto3.client('cloudwatch', region_name=l_region)
         metrics = {}
         metric_queries = [
             ('CPUUtilization', 'Percent'),

@@ -153,10 +153,15 @@ class CoInstancesreport(CoBase):
         
         # Create EC2 client to get instance details
         # Create boto3 EC2 client 
-        ec2_client = self.appConfig.get_client('ec2', region_name=region)
+        # if region is a list of regions, then select the first elem else use region
+        if isinstance(region, list):
+            l_region = region[0]
+        else:
+            l_region = region
+        ec2_client = self.appConfig.get_client('ec2', region_name=l_region)
 
         if display:
-            display_msg = f'[green]Running Compute Optimizer Report: {report_name} / {region}[/green]'
+            display_msg = f'[green]Running Compute Optimizer Report: {report_name} / {l_region}[/green]'
         else:
             display_msg = ''
 

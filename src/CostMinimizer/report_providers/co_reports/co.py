@@ -170,7 +170,7 @@ class CoReports(ReportProviderBase):
 
                 self.logger.info(f'Running Compute Optimizer query: {report_name} ')
             except Exception as e:
-                self.logger.error('Exception occured when during execution of CO query')
+                self.logger.error('z  CO query')
                 self.logger.exception(e)
                 self.appConfig.console.print(f'\n[red]Exception occured when during execution of CO query >>> {e}')
                 sys.exit()
@@ -185,7 +185,7 @@ class CoReports(ReportProviderBase):
                 pass
         else:
             run_query( report_object, display, report_name)
-        self.logger.error( display_msg)
+        self.logger.info( display_msg)
 
     def fetch_data(self, 
         reports_in_progress:list, 
