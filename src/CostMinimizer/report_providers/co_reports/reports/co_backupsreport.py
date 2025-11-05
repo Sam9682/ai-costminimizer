@@ -36,6 +36,12 @@ class CoBackupsreport(CoBase):
         return f'''AWS Backup Cost Optimization Report:
         This report provides intelligent backup cost optimization recommendations while maintaining security and recovery capabilities.
         
+        ⚠️  REGULATORY COMPLIANCE WARNING:
+        • Ensure backup policies meet your specific regulatory requirements (SOC2, PCI-DSS, HIPAA, etc.)
+        • Verify retention periods comply with industry standards and legal obligations
+        • Consult with compliance teams before implementing cost optimizations
+        • Some regulations may require longer retention periods than cost-optimal settings
+        
         Cost-Optimized Backup Strategy:
         • Tiered retention policies: 7 days hot, 30 days warm, 365 days cold storage
         • Lifecycle transitions to reduce storage costs by up to 70%
@@ -57,7 +63,7 @@ class CoBackupsreport(CoBase):
         • Duplicate snapshot elimination and consolidation
         • Up to 60% cost reduction while improving recovery capabilities
         
-        Use this report to implement cost-effective backup strategies that balance security, compliance, and cost optimization.'''
+        Use this report to implement cost-effective backup strategies that balance security and cost optimization.'''
 
     def _set_recommendation(self):
         self.recommendation = f'''Found {self.count_rows()} manual snapshots not managed by AWS Backup. Consider migrating to AWS Backup for better governance.'''
@@ -86,7 +92,6 @@ class CoBackupsreport(CoBase):
             'backup_frequency',
             'lifecycle_transition',
             'cross_region_needed',
-            'security_compliance',
             self.ESTIMATED_SAVINGS_CAPTION
         ]
 
@@ -124,7 +129,7 @@ class CoBackupsreport(CoBase):
         ttype = 'chart'
         
         # Initialize list_cols_currency for Excel formatting
-        self.list_cols_currency = [4, 5, 11]  # Current cost, optimized cost, estimated savings
+        self.list_cols_currency = [4, 5, 10]  # Current cost, optimized cost, estimated savings
         
         results_list = []
         
@@ -161,7 +166,6 @@ class CoBackupsreport(CoBase):
                             'backup_frequency': frequency,
                             'lifecycle_transition': lifecycle,
                             'cross_region_needed': 'Yes' if cross_region else 'No',
-                            'security_compliance': self._get_compliance_level(criticality),
                             self.ESTIMATED_SAVINGS_CAPTION: round(savings, 2)
                         })
             
@@ -206,7 +210,6 @@ class CoBackupsreport(CoBase):
                             'backup_frequency': frequency,
                             'lifecycle_transition': lifecycle,
                             'cross_region_needed': 'Yes' if cross_region else 'No',
-                            'security_compliance': self._get_compliance_level(criticality),
                             self.ESTIMATED_SAVINGS_CAPTION: round(savings, 2)
                         })
                         
@@ -225,7 +228,6 @@ class CoBackupsreport(CoBase):
                 'backup_frequency': '',
                 'lifecycle_transition': '',
                 'cross_region_needed': '',
-                'security_compliance': '',
                 self.ESTIMATED_SAVINGS_CAPTION: 0.0
             })
 
@@ -313,42 +315,6 @@ class CoBackupsreport(CoBase):
         
         return total_cost, retention_policy, frequency, lifecycle
     
-    def _get_compliance_level(self, criticality):
-        """Get compliance level based on criticality"""
-        if criticality == 'Critical':
-            return 'SOC2/PCI-DSS Ready'
-        elif criticality == 'Important':
-            return 'Standard Compliance'
-        else:
-            return 'Basic Protection'e
-                elif tag['Key'] == 'aws:backup:source-resource':
-                    return True
-        return False
-
-    def _is_aws_backup_snapshot_rds(self, tags):
-        """Check if RDS snapshot was created by AWS Backup"""
-        for tag in tags:
-            if tag['Key'] in ['aws:backup:source-resource', 'CreatedBy']:
-                if tag['Key'] == 'CreatedBy' and 'backup' in tag['Value'].lower():
-                    return True
-                elif tag['Key'] == 'aws:backup:source-resource':
-                    return True
-        return False
-
-    def _get_created_by(self, tags):
-        """Extract who created the snapshot from tags"""
-        for tag in tags:
-            if tag['Key'] == 'CreatedBy':
-                return tag['Value']
-        return 'Manual/Unknown'
-
-    def _get_created_by_rds(self, tags):
-        """Extract who created the RDS snapshot from tags"""
-        for tag in tags:
-            if tag['Key'] == 'CreatedBy':
-                return tag['Value']
-        return 'Manual/Unknown'
-
     def set_chart_type_of_excel(self):
         self.chart_type_of_excel = 'column'
         return self.chart_type_of_excel
@@ -357,31 +323,10 @@ class CoBackupsreport(CoBase):
         return 2, 0, 2, 0
 
     def get_range_values(self):
-        return 9, 1, 9, -1
+        return 10, 1, 10, -1
 
     def get_list_cols_currency(self):
-        return [9]
+        return [10]
 
     def get_group_by(self):
         return [2]
-        for tag in tags:
-            if tag['Key'] in ['aws:backup:source-resource', 'CreatedBy']:
-                if tag['Key'] == 'CreatedBy' and 'backup' in tag['Value'].lower():
-                    return True
-                elif tag['Key'] == 'aws:backup:source-resource':
-                    return True
-        return False
-
-    def _get_created_by(self, tags):
-        """Extract who created the snapshot from tags"""
-        for tag in tags:
-            if tag['Key'] == 'CreatedBy':
-                return tag['Value']
-        return 'Manual/Unknown'
-
-    def _get_created_by_rds(self, tags):
-        """Extract who created the RDS snapshot from tags"""
-        for tag in tags:
-            if tag['Key'] == 'CreatedBy':
-                return tag['Value']
-        return 'Manual/Unknown'
