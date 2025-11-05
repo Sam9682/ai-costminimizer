@@ -128,6 +128,17 @@ class CoBackupsreport(CoBase):
         """Generate cost-optimized AWS Backup recommendations"""
         ttype = 'chart'
         
+        # if region is a list of regions, then select the first elem else use region
+        if isinstance(region, list):
+            l_region = region[0]
+        else:
+            l_region = region
+            
+        if display:
+            display_msg = f'[green]Running Compute Optimizer Report: {report_name} / {l_region}[/green]'
+        else:
+            display_msg = ''
+        
         # Initialize list_cols_currency for Excel formatting
         self.list_cols_currency = [4, 5, 10]  # Current cost, optimized cost, estimated savings
         
