@@ -92,6 +92,9 @@ class CoRdsserverless(CoBase):
             'avg_cpu_utilization',
             'max_cpu_utilization',
             'cpu_variability',
+            'avg_db_connections',
+            'avg_read_iops',
+            'avg_write_iops',
             'workload_pattern',
             'serverless_compatible',
             'migration_complexity',
@@ -171,6 +174,32 @@ class CoRdsserverless(CoBase):
         base_cost = instance_cost_map.get(instance_class, 100)
         return round(base_cost * savings_percentage, 2)
 
+    def analyze_workload_pattern(self, metrics):
+        """Analyze workload pattern based on CPU, IOPS, and DB connections"""
+        avg_cpu = metrics.get('avg_cpu', 0)
+        cpu_variability = metrics.get('cpu_variability', 0)
+        avg_db_connections = metrics.get('avg_db_connections', 0)
+        avg_read_iops = metrics.get('avg_read_iops', 0)
+        avg_write_iops = metrics.get('avg_write_iops', 0)
+        
+        # Good candidate: low CPU + low IOPS + low connections
+        if avg_cpu < 20 and avg_read_iops < 100 and avg_write_iops < 100 and avg_db_connections < 10:
+            return 'Good Candidate'
+        
+        # Spiky: high variability regardless of average
+        if cpu_variability > 30:
+            return 'Spiky'
+        
+        # Variable: moderate variability
+        if cpu_variability > 15:
+            return 'Variable'
+        
+        # Low utilization but higher IOPS/connections
+        if avg_cpu < 30:
+            return 'Low'
+        
+        return 'Steady'
+
     def sql(self, client, region, account, display=True, report_name=''):
         """Main method to get RDS recommendations from Compute Optimizer"""
         ttype = self.set_chart_type_of_excel()
@@ -214,7 +243,9 @@ class CoRdsserverless(CoBase):
                 avg_cpu = 0.0
                 max_cpu = 0.0
                 avg_memory = 0.0
-                avg_iops = 0.0
+                avg_db_connections = 0.0
+                avg_read_iops = 0.0
+                avg_write_iops = 0.0
                 
                 utilization_metrics = recommendation.get('utilizationMetrics', [])
                 for metric in utilization_metrics:
@@ -224,7 +255,11 @@ class CoRdsserverless(CoBase):
                     elif metric_name == 'Memory':
                         avg_memory = float(metric.get('value', 0))
                     elif metric_name == 'DatabaseConnections':
-                        avg_iops = float(metric.get('value', 0))
+                        avg_db_connections = float(metric.get('value', 0))
+                    elif metric_name == 'ReadIOPS':
+                        avg_read_iops = float(metric.get('value', 0))
+                    elif metric_name == 'WriteIOPS':
+                        avg_write_iops = float(metric.get('value', 0))
                 
                 # Get max CPU from performance risk data if available
                 performance_risk = recommendation.get('performanceRisk', 'Low')
@@ -240,21 +275,23 @@ class CoRdsserverless(CoBase):
                 estimated_savings = 0.0
                 if is_compatible and avg_cpu < 70:  # Only consider low-medium utilization instances
                     estimated_savings = self._calculate_serverless_savings(instance_class, avg_cpu)
-                
+
                 # Detect spiky workloads (good serverless candidates)
                 cpu_variability = max_cpu - avg_cpu if max_cpu > avg_cpu else 0
-                is_spiky = cpu_variability > 20 or (avg_cpu < 30 and max_cpu > 60)
-                
+
+                # Determine workload pattern using analyze_workload_pattern
+                workload_pattern = self.analyze_workload_pattern({
+                    'avg_cpu': avg_cpu,
+                    'cpu_variability': cpu_variability,
+                    'avg_db_connections': avg_db_connections,
+                    'avg_read_iops': avg_read_iops,
+                    'avg_write_iops': avg_write_iops
+                })
+
                 # Only include instances that are good candidates for serverless
-                if is_compatible and (is_spiky or finding in ['UNDER_PROVISIONED', 'OVER_PROVISIONED'] or avg_cpu < 50):
-                    # Determine workload pattern
-                    if is_spiky:
-                        workload_pattern = 'Spiky' if cpu_variability > 30 else 'Variable'
-                    elif avg_cpu < 20:
-                        workload_pattern = 'Low'
-                    else:
-                        workload_pattern = 'Steady'
-                    
+                # if workload is Good Candidate or Skipy of if finding and is_compatible 
+
+                if is_compatible and (workload_pattern in ['Good Candidate','Spiky'] or finding in ['UNDER_PROVISIONED', 'OVER_PROVISIONED'] ):
                     results_list.append({
                         'account_id': account_id,
                         'db_instance_arn': db_arn,
@@ -265,6 +302,9 @@ class CoRdsserverless(CoBase):
                         'avg_cpu_utilization': round(avg_cpu, 2),
                         'max_cpu_utilization': round(max_cpu, 2),
                         'cpu_variability': round(cpu_variability, 2),
+                        'avg_db_connections': round(avg_db_connections, 2),
+                        'avg_read_iops': round(avg_read_iops, 2),
+                        'avg_write_iops': round(avg_write_iops, 2),
                         'workload_pattern': workload_pattern,
                         'serverless_compatible': 'Yes' if is_compatible else 'No',
                         'migration_complexity': complexity,
@@ -276,13 +316,16 @@ class CoRdsserverless(CoBase):
             results_list.append({
                 'account_id': account,
                 'db_instance_arn': '',
-                'db_instance_identifier': 'No suitable instances found',
+                'db_instance_identifier': 'No suitable instances found (insufficient data?)',
                 'engine': '',
                 'instance_class': '',
                 'finding': '',
                 'avg_cpu_utilization': 0,
                 'max_cpu_utilization': 0,
                 'cpu_variability': 0,
+                'avg_db_connections': 0,
+                'avg_read_iops': 0,
+                'avg_write_iops': 0,
                 'workload_pattern': '',
                 'serverless_compatible': '',
                 'migration_complexity': '',
@@ -296,21 +339,21 @@ class CoRdsserverless(CoBase):
 
     def set_chart_type_of_excel(self):
         """Return chart type ('chart' or 'pivot' or '') for Excel graph"""
-        self.chart_type_of_excel = 'chart'
+        self.chart_type_of_excel = 'pivot'
         return self.chart_type_of_excel
 
     def get_range_categories(self):
         """Return range definition of categories in Excel graph (Column # from [0..N])"""
-        return 2, 0, 2, 0
+        return 4, 0, 4, 0
 
     def get_range_values(self):
         """Return list of column values in Excel graph (Column # from [0..N])"""
-        return 9, 1, 9, -1
+        return 16, 1, 16, -1
 
     def get_list_cols_currency(self):
         """Return list of columns to format as currency in Excel (Column # from [0..N])"""
-        return [9]
+        return [16]
 
     def get_group_by(self):
         """Return columns to group by in Excel graph (rank in pandas DF [1..N])"""
-        return [2]
+        return [4]
