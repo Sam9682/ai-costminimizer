@@ -7,31 +7,41 @@ __license__ = "Apache-2.0"
 from ....constants import __tooling_name__
 from ..co_base import CoBase
 import pandas as pd
-import boto3
+from rich.progress import track
 
 class CoRdsserverless(CoBase):
+    """Report class for analyzing RDS instances suitable for serverless architecture migration"""
+    
     def supports_user_tags(self) -> bool:
+        """Indicates if this report supports user-defined tags for filtering"""
         return True
 
     def is_report_configurable(self) -> bool:
+        """Indicates if this report has configurable parameters"""
         return True
 
     def author(self) -> list:
+        """Return list of report authors"""
         return ['slepetre']
 
     def name(self):
+        """Return unique identifier for this report"""
         return "co_rdsserverless"
 
     def common_name(self) -> str:
+        """Return human-readable name for this report"""
         return "RDS SERVERLESS OPTIMIZATION"
 
     def domain_name(self):
+        """Return the domain category for this report"""
         return 'DATABASE'
 
     def description(self):
+        """Return brief description of what this report analyzes"""
         return '''RDS instances suitable for serverless architecture migration.'''
 
     def long_description(self):
+        """Return detailed description of the report functionality"""
         return f'''AWS RDS Serverless Optimization Report:
         This report identifies RDS instances that are excellent candidates for migration to Aurora Serverless v2.
         The comprehensive analysis includes:
@@ -51,21 +61,27 @@ class CoRdsserverless(CoBase):
         Use this report to systematically migrate variable workloads to Aurora Serverless v2 and achieve significant cost optimization through automatic scaling.'''
 
     def _set_recommendation(self):
+        """Set the recommendation text based on report results"""
         self.recommendation = f'''Found {self.count_rows()} RDS instances suitable for serverless migration. See the report for detailed analysis.'''
 
     def get_report_html_link(self) -> str:
+        """Return URL to documentation for this report"""
         return 'https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless-v2.html'
 
     def report_type(self):
+        """Return the type of report (raw or processed)"""
         return 'processed'
 
     def report_provider(self):
+        """Return the provider identifier for this report"""
         return 'co'
 
     def service_name(self):
+        """Return the AWS service this report analyzes"""
         return 'Compute Optimizer'
 
     def get_required_columns(self) -> list:
+        """Return list of required columns for this report"""
         return [
             'account_id',
             'db_instance_arn',
@@ -83,28 +99,35 @@ class CoRdsserverless(CoBase):
         ]
 
     def get_expected_column_headers(self) -> list:
+        """Return list of expected column headers for this report"""
         return self.get_required_columns()
 
     def disable_report(self) -> bool:
+        """Indicates if this report should be disabled"""
         return False
 
     def display_in_menu(self) -> bool:
+        """Indicates if this report should be displayed in the menu"""
         return True
 
     def override_column_validation(self) -> bool:
+        """Override column validation for this report"""
         return True
 
     def get_estimated_savings(self, sum=False) -> float:
+        """Calculate and return estimated savings from the report"""
         self._set_recommendation()
         return self.set_estimate_savings(sum=sum)
 
     def set_estimate_savings(self, sum=False) -> float:
+        """Set and calculate estimated savings from the dataframe"""
         df = self.get_report_dataframe()
         if sum and (df is not None) and (not df.empty) and (self.ESTIMATED_SAVINGS_CAPTION in df.columns):
             return float(round(df[self.ESTIMATED_SAVINGS_CAPTION].astype(float).sum(), 2))
         return 0.0
 
     def count_rows(self) -> int:
+        """Return the number of rows found in the dataframe"""
         try:
             return self.report_result[0]['Data'].shape[0] if not self.report_result[0]['Data'].empty else 0
         except Exception as e:
@@ -149,8 +172,8 @@ class CoRdsserverless(CoBase):
         return round(base_cost * savings_percentage, 2)
 
     def sql(self, client, region, account, display=True, report_name=''):
-        """Get RDS recommendations from Compute Optimizer"""
-        ttype = 'chart'
+        """Main method to get RDS recommendations from Compute Optimizer"""
+        ttype = self.set_chart_type_of_excel()
         
         # if region is a list of regions, then select the first elem else use region
         if isinstance(region, list):
@@ -177,8 +200,9 @@ class CoRdsserverless(CoBase):
 
         results_list = []
         
-        if response and 'databaseRecommendations' in response:
-            for recommendation in response['databaseRecommendations']:
+        if response and 'rdsDBRecommendations' in response:
+            iterator = track(response['rdsDBRecommendations'], description=display_msg) if self.appConfig.mode == 'cli' else response['rdsDBRecommendations']
+            for recommendation in iterator:
                 account_id = recommendation.get('accountId', account)
                 db_arn = recommendation.get('resourceArn', '')
                 db_identifier = recommendation.get('currentDBInstanceClass', '').split('.')[-1] if recommendation.get('currentDBInstanceClass') else ''
@@ -271,17 +295,22 @@ class CoRdsserverless(CoBase):
         return self.report_result
 
     def set_chart_type_of_excel(self):
-        self.chart_type_of_excel = 'column'
+        """Return chart type ('chart' or 'pivot' or '') for Excel graph"""
+        self.chart_type_of_excel = 'chart'
         return self.chart_type_of_excel
 
     def get_range_categories(self):
+        """Return range definition of categories in Excel graph (Column # from [0..N])"""
         return 2, 0, 2, 0
 
     def get_range_values(self):
+        """Return list of column values in Excel graph (Column # from [0..N])"""
         return 9, 1, 9, -1
 
     def get_list_cols_currency(self):
+        """Return list of columns to format as currency in Excel (Column # from [0..N])"""
         return [9]
 
     def get_group_by(self):
+        """Return columns to group by in Excel graph (rank in pandas DF [1..N])"""
         return [2]

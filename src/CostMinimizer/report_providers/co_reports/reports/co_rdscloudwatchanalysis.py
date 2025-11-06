@@ -10,30 +10,41 @@ import pandas as pd
 import boto3
 from datetime import datetime, timedelta
 from statistics import stdev, mean
+from rich.progress import track
 
 class CoRdscloudwatchanalysis(CoBase):
+    """Report class for analyzing RDS instances using CloudWatch metrics for serverless migration opportunities"""
+    
     def supports_user_tags(self) -> bool:
+        """Indicates if this report supports user-defined tags for filtering"""
         return True
 
     def is_report_configurable(self) -> bool:
+        """Indicates if this report has configurable parameters"""
         return True
 
     def author(self) -> list:
+        """Return list of report authors"""
         return ['slepetre']
 
     def name(self):
+        """Return unique identifier for this report"""
         return "co_rdscloudwatchanalysis"
 
     def common_name(self) -> str:
+        """Return human-readable name for this report"""
         return "RDS CLOUDWATCH SPIKE ANALYSIS"
 
     def domain_name(self):
+        """Return the domain category for this report"""
         return 'DATABASE'
 
     def description(self):
+        """Return brief description of what this report analyzes"""
         return '''Detailed RDS spike analysis using CloudWatch metrics for serverless migration.'''
 
     def long_description(self):
+        """Return detailed description of the report functionality"""
         return f'''AWS RDS CloudWatch Spike Analysis Report:
         This advanced report performs deep statistical analysis of RDS instances using 14 days of CloudWatch metrics to identify optimal serverless migration candidates.
         
@@ -54,21 +65,27 @@ class CoRdscloudwatchanalysis(CoBase):
         This report provides the most detailed analysis available for RDS serverless migration decisions, using real CloudWatch data to predict serverless performance and cost benefits with high accuracy.'''
 
     def _set_recommendation(self):
+        """Set the recommendation text based on report results"""
         self.recommendation = f'''Found {self.count_rows()} RDS instances with detailed CloudWatch analysis. See the report for spike patterns.'''
 
     def get_report_html_link(self) -> str:
+        """Return URL to documentation for this report"""
         return 'https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless-v2.html'
 
     def report_type(self):
+        """Return the type of report (raw or processed)"""
         return 'processed'
 
     def report_provider(self):
+        """Return the provider identifier for this report"""
         return 'co'
 
     def service_name(self):
+        """Return the AWS service this report analyzes"""
         return 'CloudWatch'
 
     def get_required_columns(self) -> list:
+        """Return list of required columns for this report"""
         return [
             'account_id',
             'db_identifier',
@@ -86,28 +103,35 @@ class CoRdscloudwatchanalysis(CoBase):
         ]
 
     def get_expected_column_headers(self) -> list:
+        """Return list of expected column headers for this report"""
         return self.get_required_columns()
 
     def disable_report(self) -> bool:
+        """Indicates if this report should be disabled"""
         return False
 
     def display_in_menu(self) -> bool:
+        """Indicates if this report should be displayed in the menu"""
         return True
 
     def override_column_validation(self) -> bool:
+        """Override column validation for this report"""
         return True
 
     def get_estimated_savings(self, sum=False) -> float:
+        """Calculate and return estimated savings from the report"""
         self._set_recommendation()
         return self.set_estimate_savings(sum=sum)
 
     def set_estimate_savings(self, sum=False) -> float:
+        """Set and calculate estimated savings from the dataframe"""
         df = self.get_report_dataframe()
         if sum and (df is not None) and (not df.empty) and (self.ESTIMATED_SAVINGS_CAPTION in df.columns):
             return float(round(df[self.ESTIMATED_SAVINGS_CAPTION].astype(float).sum(), 2))
         return 0.0
 
     def count_rows(self) -> int:
+        """Return the number of rows found in the dataframe"""
         try:
             return self.report_result[0]['Data'].shape[0] if not self.report_result[0]['Data'].empty else 0
         except Exception as e:
@@ -274,7 +298,7 @@ class CoRdscloudwatchanalysis(CoBase):
     
     def sql(self, client, region, account, display=True, report_name=''):
         """Main method to analyze RDS instances using CloudWatch metrics"""
-        ttype = 'chart'
+        ttype = self.set_chart_type_of_excel()
         
         # if region is a list of regions, then select the first elem else use region
         if isinstance(region, list):
@@ -292,13 +316,14 @@ class CoRdscloudwatchanalysis(CoBase):
         
         instances = self.get_rds_instances(region)
         results_list = []
-        
-        for instance in instances:
+
+        iterator = track(instances, description=display_msg) if self.appConfig.mode == 'cli' else instances
+        for instance in iterator:
             db_identifier = instance['DBInstanceIdentifier']
             engine = instance['Engine']
             instance_class = instance['DBInstanceClass']
             
-            self.appConfig.console.print(f"Analyzing {db_identifier}...")
+            self.appConfig.logger.info(f"Analyzing {db_identifier}...")
             
             # Get CloudWatch metrics
             metrics = self.get_cloudwatch_metrics(db_identifier, region)
@@ -354,17 +379,22 @@ class CoRdscloudwatchanalysis(CoBase):
         return self.report_result
 
     def set_chart_type_of_excel(self):
+        """Return chart type ('chart' or 'pivot' or '') for Excel graph"""
         self.chart_type_of_excel = 'column'
         return self.chart_type_of_excel
 
     def get_range_categories(self):
+        """Return range definition of categories in Excel graph (Column # from [0..N])"""
         return 2, 0, 2, 0
 
     def get_range_values(self):
+        """Return list of column values in Excel graph (Column # from [0..N])"""
         return 12, 1, 12, -1
 
     def get_list_cols_currency(self):
+        """Return list of columns to format as currency in Excel (Column # from [0..N])"""
         return [12]
 
     def get_group_by(self):
+        """Return columns to group by in Excel graph (rank in pandas DF [1..N])"""
         return [2]
