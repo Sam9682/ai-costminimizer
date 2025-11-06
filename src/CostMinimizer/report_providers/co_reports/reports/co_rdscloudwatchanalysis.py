@@ -217,7 +217,7 @@ class CoRdscloudwatchanalysis(CoBase):
                 'serverless_suitability': 'Unknown'
             }
         
-        # Calculate spike characteristics
+        # Calculate CPU spike characteristics
         avg_cpu = mean(cpu_values)
         max_cpu = max(cpu_max_values)
         cpu_std_dev = stdev(cpu_values)
@@ -230,12 +230,64 @@ class CoRdscloudwatchanalysis(CoBase):
         # Calculate variability coefficient
         variability_coefficient = cpu_std_dev / avg_cpu if avg_cpu > 0 else 0
         
+        # Analyze additional metrics
+        additional_score = 0
+        
+        # ReadIOPS analysis
+        if 'ReadIOPS' in metrics and metrics['ReadIOPS']['values']:
+            read_iops_values = metrics['ReadIOPS']['values']
+            read_iops_max = metrics['ReadIOPS']['max_values']
+            avg_read_iops = mean(read_iops_values)
+            if avg_read_iops > 0:
+                read_iops_variability = stdev(read_iops_values) / avg_read_iops
+                read_spike_count = sum(1 for val in read_iops_max if val > avg_read_iops * 2)
+                read_spike_freq = read_spike_count / len(read_iops_max)
+                additional_score += (read_iops_variability * 5) + (read_spike_freq * 10)
+        
+        # WriteIOPS analysis
+        if 'WriteIOPS' in metrics and metrics['WriteIOPS']['values']:
+            write_iops_values = metrics['WriteIOPS']['values']
+            write_iops_max = metrics['WriteIOPS']['max_values']
+            avg_write_iops = mean(write_iops_values)
+            if avg_write_iops > 0:
+                write_iops_variability = stdev(write_iops_values) / avg_write_iops
+                write_spike_count = sum(1 for val in write_iops_max if val > avg_write_iops * 2)
+                write_spike_freq = write_spike_count / len(write_iops_max)
+                additional_score += (write_iops_variability * 5) + (write_spike_freq * 10)
+        
+        # DatabaseConnections analysis
+        if 'DatabaseConnections' in metrics and metrics['DatabaseConnections']['values']:
+            conn_values = metrics['DatabaseConnections']['values']
+            conn_max = metrics['DatabaseConnections']['max_values']
+            avg_connections = mean(conn_values)
+            if avg_connections > 0:
+                conn_variability = stdev(conn_values) / avg_connections
+                conn_spike_count = sum(1 for val in conn_max if val > avg_connections * 2)
+                conn_spike_freq = conn_spike_count / len(conn_max)
+                additional_score += (conn_variability * 5) + (conn_spike_freq * 10)
+        
+        # FreeableMemory analysis (inverse - low memory indicates high usage spikes)
+        if 'FreeableMemory' in metrics and metrics['FreeableMemory']['values']:
+            memory_values = metrics['FreeableMemory']['min_values']  # Use min values for memory pressure
+            if memory_values:
+                avg_free_memory = mean(memory_values)
+                min_free_memory = min(memory_values)
+                if avg_free_memory > 0:
+                    memory_pressure = (avg_free_memory - min_free_memory) / avg_free_memory
+                    additional_score += memory_pressure * 10
+        
         # Determine spike score (0-100)
         spike_score = min(100, (
             (variability_coefficient * 30) +  # High variability
             (spike_frequency * 40) +          # Frequent spikes
-            (max(0, (max_cpu - avg_cpu) / 10)) # Spike magnitude
+            (max(0, (max_cpu - avg_cpu) / 10)) + # Spike magnitude
+            additional_score                   # Additional metrics score
         ))
+        
+        # Calculate average activity levels
+        avg_read_iops = mean(metrics['ReadIOPS']['values']) if 'ReadIOPS' in metrics and metrics['ReadIOPS']['values'] else 0
+        avg_write_iops = mean(metrics['WriteIOPS']['values']) if 'WriteIOPS' in metrics and metrics['WriteIOPS']['values'] else 0
+        avg_connections = mean(metrics['DatabaseConnections']['values']) if 'DatabaseConnections' in metrics and metrics['DatabaseConnections']['values'] else 0
         
         # Determine pattern
         if spike_score > 60:
@@ -244,9 +296,9 @@ class CoRdscloudwatchanalysis(CoBase):
         elif spike_score > 40:
             pattern = 'Moderately Spiky'
             suitability = 'Good'
-        elif avg_cpu < 20:
-            pattern = 'Low Utilization'
-            suitability = 'Good'
+        elif avg_cpu < 20 and avg_read_iops < 100 and avg_write_iops < 50 and avg_connections < 10:
+            pattern = 'Low Activity'
+            suitability = 'Excellent'
         elif variability_coefficient > 0.5:
             pattern = 'Variable'
             suitability = 'Fair'
@@ -262,7 +314,10 @@ class CoRdscloudwatchanalysis(CoBase):
             'max_cpu': round(max_cpu, 2),
             'cpu_std_dev': round(cpu_std_dev, 2),
             'spike_frequency': round(spike_frequency * 100, 2),  # As percentage
-            'variability_coefficient': round(variability_coefficient, 2)
+            'variability_coefficient': round(variability_coefficient, 2),
+            'avg_read_iops': round(avg_read_iops, 2),
+            'avg_write_iops': round(avg_write_iops, 2),
+            'avg_connections': round(avg_connections, 2)
         }
     
     def estimate_serverless_savings(self, instance_class, pattern_analysis):
@@ -351,6 +406,9 @@ class CoRdscloudwatchanalysis(CoBase):
                     'max_cpu': pattern_analysis.get('max_cpu', 0),
                     'cpu_std_dev': pattern_analysis.get('cpu_std_dev', 0),
                     'spike_frequency_pct': pattern_analysis.get('spike_frequency', 0),
+                    'avg_read_iops': pattern_analysis.get('avg_read_iops', 0),
+                    'avg_write_iops': pattern_analysis.get('avg_write_iops', 0),
+                    'avg_connections': pattern_analysis.get('avg_connections', 0),
                     'aurora_compatible': 'Yes' if is_aurora_compatible else 'No',
                     self.ESTIMATED_SAVINGS_CAPTION: estimated_savings
                 })
@@ -369,6 +427,9 @@ class CoRdscloudwatchanalysis(CoBase):
                 'max_cpu': 0,
                 'cpu_std_dev': 0,
                 'spike_frequency_pct': 0,
+                'avg_read_iops': 0,
+                'avg_write_iops': 0,
+                'avg_connections': 0,
                 'aurora_compatible': '',
                 self.ESTIMATED_SAVINGS_CAPTION: 0.0
             })
@@ -380,21 +441,23 @@ class CoRdscloudwatchanalysis(CoBase):
 
     def set_chart_type_of_excel(self):
         """Return chart type ('chart' or 'pivot' or '') for Excel graph"""
-        self.chart_type_of_excel = 'column'
+        self.chart_type_of_excel = 'pivot'
         return self.chart_type_of_excel
 
     def get_range_categories(self):
         """Return range definition of categories in Excel graph (Column # from [0..N])"""
-        return 2, 0, 2, 0
+        # Col1, Lig1 to Col2, Lig2
+        return 3, 0, 3, 0
 
     def get_range_values(self):
-        """Return list of column values in Excel graph (Column # from [0..N])"""
-        return 12, 1, 12, -1
+        """Return range definition of values in Excel graph (Column # from [0..N])"""
+        # Col1, Lig1 to Col2, Lig2
+        return 16, 1, 16, -1
 
     def get_list_cols_currency(self):
         """Return list of columns to format as currency in Excel (Column # from [0..N])"""
-        return [12]
+        return [16]
 
     def get_group_by(self):
         """Return columns to group by in Excel graph (rank in pandas DF [1..N])"""
-        return [2]
+        return [3,7]

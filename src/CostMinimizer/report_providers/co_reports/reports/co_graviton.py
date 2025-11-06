@@ -255,7 +255,7 @@ class CoGraviton(CoBase):
         return 1, 0, 1, 0
 
     def get_range_values(self):
-        """Return list of column values in Excel graph (Column # from [0..N])"""
+        """Return range definition of values in Excel graph (Column # from [0..N])"""
         # Col1, Lig1 to Col2, Lig2
         return 10, 1, 10, -1
 
