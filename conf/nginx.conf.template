@@ -4,7 +4,7 @@ events {
 
 http {
     upstream app {
-        server ai-costminimizer-${USER_ID}:8000;
+        server app:8000;
     }
 
     server {
