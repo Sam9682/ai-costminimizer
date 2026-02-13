@@ -34,6 +34,38 @@ The tool combines data from multiple AWS cost management services to provide a h
 ```
 
 ## Usage Instructions
+
+### Web Interface (Recommended for New Users)
+
+CostMinimizer now includes a user-friendly web interface that eliminates the need for command-line operations!
+
+**Quick Start:**
+```bash
+# Clone and navigate to repository
+git clone https://github.com/aws-samples/sample-costminimizer.git
+cd sample-costminimizer
+
+# Start web interface (creates SSL certs and Docker network automatically)
+./start-web-interface.sh    # Linux/Mac
+# or
+.\start-web-interface.ps1   # Windows PowerShell
+
+# Access at:
+# HTTP:  http://localhost:6000
+# HTTPS: https://localhost:6001
+```
+
+**Features:**
+- 🔐 Secure AWS credentials input and validation
+- 📊 Interactive report generation (CE, TA, CO, CUR)
+- 💬 AI-powered chat assistant for cost optimization questions
+- 🐳 Docker command generator
+- 📱 Responsive design for mobile and desktop
+
+For detailed web interface documentation, see [WEB_INTERFACE.md](WEB_INTERFACE.md)
+
+### CLI Usage (Advanced Users)
+
 ### Prerequisites
 - Python 3.8 or higher (tested on 3.13)
 - AWS credentials configured with appropriate permissions

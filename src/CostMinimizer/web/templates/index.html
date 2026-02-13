@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CostMinimizer - AWS Cost Optimization</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 CostMinimizer</h1>
+            <p>AI-Powered AWS Cost Optimization Tool</p>
+        </header>
+
+        <!-- Credentials Section -->
+        <section id="credentials-section" class="card">
+            <h2>AWS Credentials</h2>
+            <form id="credentials-form">
+                <div class="form-group">
+                    <label for="access-key">AWS Access Key ID *</label>
+                    <input type="text" id="access-key" name="access_key" required 
+                           placeholder="AKIAIOSFODNN7EXAMPLE">
+                </div>
+                
+                <div class="form-group">
+                    <label for="secret-key">AWS Secret Access Key *</label>
+                    <input type="password" id="secret-key" name="secret_key" required 
+                           placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY">
+                </div>
+                
+                <div class="form-group">
+                    <label for="session-token">AWS Session Token (Optional)</label>
+                    <input type="password" id="session-token" name="session_token" 
+                           placeholder="Session token for temporary credentials">
+                </div>
+                
+                <div class="form-group">
+                    <label for="region">AWS Region</label>
+                    <select id="region" name="region">
+                        <option value="us-east-1">us-east-1 (N. Virginia)</option>
+                        <option value="us-east-2">us-east-2 (Ohio)</option>
+                        <option value="us-west-1">us-west-1 (N. California)</option>
+                        <option value="us-west-2">us-west-2 (Oregon)</option>
+                        <option value="eu-west-1">eu-west-1 (Ireland)</option>
+                        <option value="eu-central-1">eu-central-1 (Frankfurt)</option>
+                        <option value="ap-southeast-1">ap-southeast-1 (Singapore)</option>
+                        <option value="ap-northeast-1">ap-northeast-1 (Tokyo)</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Validate Credentials</button>
+            </form>
+            
+            <div id="credentials-status" class="status-message"></div>
+        </section>
+
+        <!-- Reports Section -->
+        <section id="reports-section" class="card" style="display: none;">
+            <h2>Cost Optimization Reports</h2>
+            
+            <div class="reports-grid">
+                <div class="report-card">
+                    <input type="checkbox" id="report-ce" value="ce" checked>
+                    <label for="report-ce">
+                        <strong>Cost Explorer (CE)</strong>
+                        <p>Analyze spending patterns, trends, and Reserved Instance utilization</p>
+                    </label>
+                </div>
+                
+                <div class="report-card">
+                    <input type="checkbox" id="report-ta" value="ta" checked>
+                    <label for="report-ta">
+                        <strong>Trusted Advisor (TA)</strong>
+                        <p>Get AWS best practice recommendations for cost optimization</p>
+                    </label>
+                </div>
+                
+                <div class="report-card">
+                    <input type="checkbox" id="report-co" value="co" checked>
+                    <label for="report-co">
+                        <strong>Compute Optimizer (CO)</strong>
+                        <p>Get rightsizing recommendations for EC2, EBS, Lambda</p>
+                    </label>
+                </div>
+                
+                <div class="report-card">
+                    <input type="checkbox" id="report-cur" value="cur">
+                    <label for="report-cur">
+                        <strong>Cost & Usage Report (CUR)</strong>
+                        <p>Detailed billing analysis with custom queries</p>
+                    </label>
+                </div>
+            </div>
+            
+            <button id="run-reports-btn" class="btn btn-success">Generate Reports</button>
+            <div id="reports-status" class="status-message"></div>
+        </section>
+
+        <!-- AI Chat Section -->
+        <section id="chat-section" class="card" style="display: none;">
+            <h2>💬 AI Cost Optimization Assistant</h2>
+            <p class="chat-description">Ask questions about your AWS costs and get AI-powered recommendations</p>
+            
+            <div id="chat-container">
+                <div id="chat-messages"></div>
+                
+                <div id="chat-input-container">
+                    <textarea id="chat-input" placeholder="Ask me anything about AWS cost optimization...
+Examples:
+- What are my top 5 AWS services by cost?
+- How can I reduce my EC2 costs?
+- Show me Reserved Instance recommendations"></textarea>
+                    <button id="send-chat-btn" class="btn btn-primary">Send</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Docker Command Section -->
+        <section id="docker-section" class="card" style="display: none;">
+            <h2>🐳 Docker Command</h2>
+            <p>Run CostMinimizer directly using Docker:</p>
+            <div class="code-block">
+                <pre id="docker-command"></pre>
+                <button id="copy-docker-btn" class="btn btn-secondary">Copy Command</button>
+            </div>
+        </section>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

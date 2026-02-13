@@ -9,11 +9,13 @@ services:
     environment:
       - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-change-this-in-production}
+      - FLASK_APP=src/CostMinimizer/web/app.py
     volumes:
       - app_data:/app/data
+      - cow_data:/root/cow
     restart: unless-stopped
     networks:
-      - costminimizer-network-${USER_ID:-0}
+      - costminimizer-network
 
   nginx:
     image: nginx:alpine
@@ -30,11 +32,12 @@ services:
       - HTTP_PORT=${HTTP_PORT:-6000}
       - HTTPS_PORT=${HTTPS_PORT:-6001}
     networks:
-      - costminimizer-network-${USER_ID:-0}
+      - costminimizer-network
 
 volumes:
   app_data:
+  cow_data:
 
 networks:
-  costminimizer-network-${USER_ID:-0}:
+  costminimizer-network:
     driver: bridge

@@ -64,6 +64,9 @@ class CostMinimizerTools:
         # Add following arguments : --checks ALL
         cmd_args.append("--checks")
         cmd_args.append("ALL")
+        
+        # Add auto-update-conf to skip interactive prompts
+        cmd_args.append("--auto-update-conf")
 
         if "co" in reports:
             cmd_args.extend(["--region", region])
@@ -78,6 +81,9 @@ class CostMinimizerTools:
             # Set AWS credentials in environment
             for key, value in self.aws_credentials.items():
                 os.environ[key] = value
+            
+            # Set non-interactive mode
+            os.environ['COSTMINIMIZER_NON_INTERACTIVE'] = '1'
             
             sys.argv = ["CostMinimizer"] + cmd_args
             logger.info(f"[MCP Module Mode] sys.argv set to: {sys.argv}")
