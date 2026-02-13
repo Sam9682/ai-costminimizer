@@ -110,10 +110,20 @@ class Config(Singleton):
         # Check if --auto-update-conf parameter is set
         if hasattr(cls, 'arguments_parsed') and hasattr(cls.arguments_parsed, 'auto_update_conf') and cls.arguments_parsed.auto_update_conf:
             return True
+        
+        # Check if running in non-interactive mode (e.g., from web interface)
+        if os.environ.get('COSTMINIMIZER_NON_INTERACTIVE') == '1':
+            return True
             
         cls.console.print(f'[blue]Tool configuration is not finished.  This appears to be a new installation. [/blue]')
         cls.console.print(f'[blue]Would you like me to attempt an automatic configuartion based on your authentication variables?[/blue]')
-        answer = input('Enter [y/n]: ')
+        
+        try:
+            answer = input('Enter [y/n]: ')
+        except EOFError:
+            # Handle EOF error when running without a TTY
+            cls.console.print(f'[yellow]Running in non-interactive mode, using automatic configuration.[/yellow]')
+            return True
 
         if answer == 'y':
             return True

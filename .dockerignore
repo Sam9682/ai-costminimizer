@@ -1,13 +1,18 @@
+# Git
 .git
 .gitignore
-.vscode
+
+# Documentation
+*.md
+!README.md
+
+# Python
 __pycache__
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
 .Python
 env/
-.env
 venv/
 .venv/
 ENV/
@@ -22,6 +27,48 @@ lib64/
 parts/
 sdist/
 var/
+wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# SSL (will be mounted)
+ssl/
+
+# Docker
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Scripts
+*.sh
+*.ps1
+
+# Temporary files
+tmp/
+temp/

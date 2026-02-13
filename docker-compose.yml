@@ -1,0 +1,43 @@
+services:
+  ai-costminimizer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-costminimizer-${USER_ID:-0}
+    ports:
+      - "${HTTP_PORT:-6000}:8000"
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY:-change-this-in-production}
+      - FLASK_APP=src/CostMinimizer/web/app.py
+    volumes:
+      - app_data:/app/data
+      - cow_data:/root/cow
+    restart: unless-stopped
+    networks:
+      - costminimizer-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: ai-costminimizer-nginx-${USER_ID:-0}
+    ports:
+      - "${HTTPS_PORT:-6001}:443"
+    volumes:
+      - ./conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - ai-costminimizer
+    restart: unless-stopped
+    environment:
+      - HTTP_PORT=${HTTP_PORT:-6000}
+      - HTTPS_PORT=${HTTPS_PORT:-6001}
+    networks:
+      - costminimizer-network
+
+volumes:
+  app_data:
+  cow_data:
+
+networks:
+  costminimizer-network:
+    driver: bridge

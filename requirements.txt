@@ -25,3 +25,6 @@ python-dateutil
 setuptools
 colorama
 mcp
+flask>=2.3.0
+flask-cors>=4.0.0
+

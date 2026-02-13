@@ -15,8 +15,9 @@ COPY requirements.txt .
 COPY setup.py .
 COPY src/ ./src/
 
-# Install dependencies
+# Install dependencies including Flask
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir flask flask-cors
 RUN pip install -e .
 
 # Create necessary directories for AWS credentials
@@ -25,14 +26,18 @@ RUN mkdir -p /root/cow
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
+ENV FLASK_APP=src/CostMinimizer/web/app.py
 
-# Default command
-ENTRYPOINT ["CostMinimizer"]
-CMD  ["--configure", "--auto-update-conf"]
+# Expose port for web interface
+EXPOSE 8000
 
-# example of docker execution command
-# CostExplorer :
-#               docker run -it -v $HOME/.aws:/root/.aws -v $HOME/cow:/root/cow -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN costminimizer --ce
-# ComputeOptimizer :
-#               docker run -it -v $HOME/.aws:/root/.aws -v $HOME/cow:/root/cow -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN costminimizer --co
-# docker run -it -v $HOME/.aws:/root/.aws -v $HOME/cow:/root/cow -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN --entrypoint /bin/bash costminimizer
+# Default command - run web interface
+CMD ["python", "-m", "flask", "run", "--host=0.0.0.0", "--port=8000"]
+
+# Alternative commands:
+# CLI mode:
+#   docker run -it -v $HOME/.aws:/root/.aws -v $HOME/cow:/root/cow -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN --entrypoint CostMinimizer costminimizer --ce
+# Web mode (default):
+#   docker run -p 8000:8000 -v $HOME/cow:/root/cow costminimizer
+# Interactive shell:
+#   docker run -it -v $HOME/.aws:/root/.aws -v $HOME/cow:/root/cow -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN --entrypoint /bin/bash costminimizer
