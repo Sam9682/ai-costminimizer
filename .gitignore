@@ -44,3 +44,9 @@ CostMinimizer-client/.vite/
 .pylintrc
 
 docs/*
+
+# ai-swautomorph compliance
+.env.prod
+ssl/privkey.pem
+ssl/fullchain.pem
+conf/nginx.conf
