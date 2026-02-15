@@ -166,6 +166,10 @@ def execute_reports_background(session_id, reports, region, aws_creds):
     if "co" in reports:
         cmd_args.extend(["--region", region])
     
+    # Log the command that will be executed
+    log_queues[session_id].put(f"INFO - Building CostMinimizer command with reports: {reports}")
+    log_queues[session_id].put(f"INFO - Command arguments: {cmd_args}")
+    
     # Set environment variables and execute
     original_env = dict(os.environ)
     original_argv = sys.argv
@@ -230,7 +234,7 @@ def execute_reports_background(session_id, reports, region, aws_creds):
         
         # Set sys.argv for argument parsing
         sys.argv = ["CostMinimizer"] + cmd_args
-        log_queues[session_id].put(f"INFO - Launching CostMinimizer with arguments: {cmd_args}")
+        log_queues[session_id].put(f"INFO - sys.argv set to: {sys.argv}")
         log_queues[session_id].put(f"INFO - Starting report generation...")
         log_queues[session_id].put(f"INFO - This may take several minutes depending on the reports selected...")
         
