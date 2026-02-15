@@ -99,11 +99,18 @@ async function handleRunReports() {
     runButton.disabled = true;
     runButton.textContent = 'Generating Reports...';
     
+    // Clear previous logs in credentials-status
+    const credentialsStatus = document.getElementById('credentials-status');
+    credentialsStatus.innerHTML = '<h3>📊 Report Generation Logs:</h3><div id="log-container" style="max-height: 400px; overflow-y: auto; background: #f5f5f5; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px;"></div>';
+    credentialsStatus.className = 'status-message info';
+    credentialsStatus.style.display = 'block';
+    
     showStatus('reports-status', 
         `🚀 Generating reports: ${selectedReports.join(', ').toUpperCase()}<br>This may take several minutes...`, 
         'info');
     
     try {
+        // Start report generation
         const response = await fetch('/api/run-reports', {
             method: 'POST',
             headers: {
@@ -117,25 +124,130 @@ async function handleRunReports() {
         
         const result = await response.json();
         
-        if (result.success) {
-            showStatus('reports-status', 
-                `✅ Reports generated successfully!<br>` +
-                `📊 Reports: ${result.reports_generated.join(', ').toUpperCase()}<br>` +
-                `📁 Output folder: ${result.output_folder}<br>` +
-                `💡 You can now ask questions about the results in the chat below.`, 
-                'success');
-            
-            // Add message to chat
-            addChatMessage('system', `Reports generated successfully! Output saved to: ${result.output_folder}`);
+        if (result.success && result.session_id) {
+            // Connect to SSE stream
+            streamReportLogs(result.session_id, selectedReports);
         } else {
             showStatus('reports-status', `❌ Error: ${result.error}`, 'error');
+            runButton.disabled = false;
+            runButton.textContent = 'Generate Reports';
         }
     } catch (error) {
         showStatus('reports-status', `❌ Error: ${error.message}`, 'error');
-    } finally {
         runButton.disabled = false;
         runButton.textContent = 'Generate Reports';
     }
+}
+
+function streamReportLogs(sessionId, selectedReports) {
+    const logContainer = document.getElementById('log-container');
+    const runButton = document.getElementById('run-reports-btn');
+    let excelFilePath = null;
+    
+    const eventSource = new EventSource(`/api/stream-logs/${sessionId}`);
+    
+    eventSource.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        
+        switch(data.type) {
+            case 'log':
+                // Add log message
+                const logLine = document.createElement('div');
+                logLine.textContent = data.message;
+                logLine.style.marginBottom = '2px';
+                
+                // Highlight important messages
+                if (data.message.includes('ERROR')) {
+                    logLine.style.color = 'red';
+                    logLine.style.fontWeight = 'bold';
+                } else if (data.message.includes('SUCCESS') || data.message.includes('saved into')) {
+                    logLine.style.color = 'green';
+                    logLine.style.fontWeight = 'bold';
+                }
+                
+                // Extract Excel file path
+                if (data.message.includes('Excel Report Output saved into:')) {
+                    const match = data.message.match(/Excel Report Output saved into:\s*(.+\.xlsx)/);
+                    if (match) {
+                        excelFilePath = match[1];
+                    }
+                }
+                
+                logContainer.appendChild(logLine);
+                logContainer.scrollTop = logContainer.scrollHeight;
+                break;
+                
+            case 'excel':
+                excelFilePath = data.path;
+                break;
+                
+            case 'success':
+                const successLine = document.createElement('div');
+                successLine.textContent = data.message;
+                successLine.style.color = 'green';
+                successLine.style.fontWeight = 'bold';
+                successLine.style.marginTop = '10px';
+                logContainer.appendChild(successLine);
+                logContainer.scrollTop = logContainer.scrollHeight;
+                break;
+                
+            case 'error':
+                const errorLine = document.createElement('div');
+                errorLine.textContent = `ERROR: ${data.message}`;
+                errorLine.style.color = 'red';
+                errorLine.style.fontWeight = 'bold';
+                errorLine.style.marginTop = '10px';
+                logContainer.appendChild(errorLine);
+                logContainer.scrollTop = logContainer.scrollHeight;
+                
+                showStatus('reports-status', `❌ Error: ${data.message}`, 'error');
+                eventSource.close();
+                runButton.disabled = false;
+                runButton.textContent = 'Generate Reports';
+                break;
+                
+            case 'done':
+                eventSource.close();
+                runButton.disabled = false;
+                runButton.textContent = 'Generate Reports';
+                
+                // Show success message with download link
+                let statusMessage = `✅ Reports generated successfully!<br>` +
+                    `📊 Reports: ${selectedReports.join(', ').toUpperCase()}<br>`;
+                
+                if (excelFilePath || data.excel_file) {
+                    const filePath = excelFilePath || data.excel_file;
+                    statusMessage += `📁 Excel Report: <a href="/api/download-report/${encodeURIComponent(filePath)}" download style="color: #007bff; text-decoration: underline;">Download CostMinimizer.xlsx</a><br>`;
+                }
+                
+                statusMessage += `💡 You can now ask questions about the results in the chat below.`;
+                
+                showStatus('reports-status', statusMessage, 'success');
+                
+                // Add message to chat
+                addChatMessage('system', `Reports generated successfully!${excelFilePath ? ' Excel file is ready for download.' : ''}`);
+                break;
+                
+            case 'keepalive':
+                // Just keep connection alive
+                break;
+        }
+    };
+    
+    eventSource.onerror = function(error) {
+        console.error('SSE Error:', error);
+        eventSource.close();
+        
+        const errorLine = document.createElement('div');
+        errorLine.textContent = 'Connection error. Please check the logs above for details.';
+        errorLine.style.color = 'red';
+        errorLine.style.fontWeight = 'bold';
+        errorLine.style.marginTop = '10px';
+        logContainer.appendChild(errorLine);
+        
+        runButton.disabled = false;
+        runButton.textContent = 'Generate Reports';
+    };
 }
 
 async function handleSendChat() {
