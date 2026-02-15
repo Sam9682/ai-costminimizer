@@ -252,9 +252,14 @@ def execute_reports_background(session_id, reports, region, aws_creds):
             log_queues[session_id].put(f"EXCEL_FILE - {excel_file_path}")
         
         # Get the directory tree of generated files
+        log_queues[session_id].put(f"INFO - Scanning /root/cow for generated files...")
         tree_info = get_cow_data_tree('/root/cow')
+        log_queues[session_id].put(f"INFO - Tree scan result: success={tree_info.get('success')}, files={len(tree_info.get('tree', []))}")
+        
         if tree_info.get('success'):
             log_queues[session_id].put(f"TREE_DATA - {json.dumps(tree_info)}")
+        else:
+            log_queues[session_id].put(f"WARNING - Failed to get tree data: {tree_info.get('error', 'Unknown error')}")
         
         log_queues[session_id].put("DONE")
         
@@ -463,6 +468,9 @@ def stream_logs(session_id):
                     # Send completion message
                     yield f"data: {json.dumps({'type': 'done', 'excel_file': excel_file})}\n\n"
                     break
+                elif msg.startswith("TREE_DATA - "):
+                    tree_json = msg.replace("TREE_DATA - ", "")
+                    yield f"data: {json.dumps({'type': 'tree', 'data': tree_json})}\n\n"
                 elif msg.startswith("EXCEL_FILE - "):
                     excel_file = msg.replace("EXCEL_FILE - ", "")
                     yield f"data: {json.dumps({'type': 'excel', 'path': excel_file})}\n\n"

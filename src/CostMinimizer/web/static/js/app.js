@@ -241,6 +241,16 @@ function streamReportLogs(sessionId, selectedReports) {
                     displayReportResults(reportsStatus, logContainer, selectedReports, excelFilePath, data.excel_file, treeData);
                     break;
                     
+                case 'tree':
+                    console.log('Tree data received:', data.data);
+                    try {
+                        treeData = JSON.parse(data.data);
+                        console.log('Parsed tree data:', treeData);
+                    } catch (e) {
+                        console.error('Error parsing tree data:', e);
+                    }
+                    break;
+                    
                 case 'keepalive':
                     console.log('Keepalive received');
                     break;
@@ -285,28 +295,64 @@ function streamReportLogs(sessionId, selectedReports) {
 }
 
 function displayReportResults(reportsStatus, logContainer, selectedReports, excelFilePath, dataExcelFile, treeData) {
-    // Fetch the latest tree data
+    console.log('Displaying results with tree data:', treeData);
+    
+    // Build success HTML
+    let successHTML = `<h3>✅ Reports Generated Successfully!</h3>` +
+        `<div id="log-container"></div>` +
+        `<div style="margin-top: 15px; padding: 15px; background: #d4edda; color: #155724; border-radius: 5px;">` +
+        `<strong>📊 Reports:</strong> ${selectedReports.join(', ').toUpperCase()}<br>`;
+    
+    if (excelFilePath || dataExcelFile) {
+        const filePath = excelFilePath || dataExcelFile;
+        successHTML += `<strong>📁 Excel Report:</strong> <a href="/api/download-report/${encodeURIComponent(filePath)}" download style="color: #007bff; text-decoration: underline; font-weight: bold;">Download CostMinimizer.xlsx</a><br>`;
+    }
+    
+    successHTML += `<strong>💡 Tip:</strong> You can now ask questions about the results in the chat below.` +
+        `</div>`;
+    
+    // Add file tree section if we have tree data
+    if (treeData && treeData.success && treeData.tree && treeData.tree.length > 0) {
+        successHTML += `<div style="margin-top: 15px; padding: 15px; background: #e7f3ff; color: #004085; border-radius: 5px;">` +
+            `<strong>📂 Generated Files (${treeData.base_path}):</strong><br>` +
+            `<div id="file-tree" style="margin-top: 10px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto; background: white; padding: 10px; border-radius: 5px;"></div>` +
+            `</div>`;
+    } else {
+        console.log('No tree data available or tree is empty');
+        // Try to fetch tree data from API as fallback
+        fetchAndDisplayTree(successHTML, logContainer, reportsStatus, excelFilePath);
+        return;
+    }
+    
+    // Preserve the log container content
+    const logContent = logContainer.innerHTML;
+    reportsStatus.innerHTML = successHTML;
+    reportsStatus.className = 'status-message success';
+    
+    // Restore log content
+    const newLogContainer = document.getElementById('log-container');
+    if (newLogContainer) {
+        newLogContainer.innerHTML = logContent;
+    }
+    
+    // Render file tree
+    renderFileTree(treeData.tree, treeData.base_path);
+    
+    // Add message to chat
+    addChatMessage('system', `Reports generated successfully!${excelFilePath ? ' Excel file is ready for download.' : ''}`);
+}
+
+function fetchAndDisplayTree(successHTML, logContainer, reportsStatus, excelFilePath) {
+    // Fetch the tree data from API as fallback
     fetch('/api/cow-data-tree')
         .then(response => response.json())
         .then(treeInfo => {
-            let successHTML = `<h3>✅ Reports Generated Successfully!</h3>` +
-                `<div id="log-container"></div>` +
-                `<div style="margin-top: 15px; padding: 15px; background: #d4edda; color: #155724; border-radius: 5px;">` +
-                `<strong>📊 Reports:</strong> ${selectedReports.join(', ').toUpperCase()}<br>`;
+            console.log('Fetched tree info from API:', treeInfo);
             
-            if (excelFilePath || dataExcelFile) {
-                const filePath = excelFilePath || dataExcelFile;
-                successHTML += `<strong>📁 Excel Report:</strong> <a href="/api/download-report/${encodeURIComponent(filePath)}" download style="color: #007bff; text-decoration: underline; font-weight: bold;">Download CostMinimizer.xlsx</a><br>`;
-            }
-            
-            successHTML += `<strong>💡 Tip:</strong> You can now ask questions about the results in the chat below.` +
-                `</div>`;
-            
-            // Add file tree section
             if (treeInfo.success && treeInfo.tree && treeInfo.tree.length > 0) {
                 successHTML += `<div style="margin-top: 15px; padding: 15px; background: #e7f3ff; color: #004085; border-radius: 5px;">` +
-                    `<strong>📂 Generated Files:</strong><br>` +
-                    `<div id="file-tree" style="margin-top: 10px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto;"></div>` +
+                    `<strong>📂 Generated Files (${treeInfo.base_path}):</strong><br>` +
+                    `<div id="file-tree" style="margin-top: 10px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto; background: white; padding: 10px; border-radius: 5px;"></div>` +
                     `</div>`;
             }
             
@@ -321,7 +367,7 @@ function displayReportResults(reportsStatus, logContainer, selectedReports, exce
                 newLogContainer.innerHTML = logContent;
             }
             
-            // Render file tree
+            // Render file tree if available
             if (treeInfo.success && treeInfo.tree && treeInfo.tree.length > 0) {
                 renderFileTree(treeInfo.tree, treeInfo.base_path);
             }
@@ -332,18 +378,6 @@ function displayReportResults(reportsStatus, logContainer, selectedReports, exce
         .catch(error => {
             console.error('Error fetching tree data:', error);
             // Still show success message even if tree fetch fails
-            let successHTML = `<h3>✅ Reports Generated Successfully!</h3>` +
-                `<div id="log-container"></div>` +
-                `<div style="margin-top: 15px; padding: 15px; background: #d4edda; color: #155724; border-radius: 5px;">` +
-                `<strong>📊 Reports:</strong> ${selectedReports.join(', ').toUpperCase()}<br>`;
-            
-            if (excelFilePath || dataExcelFile) {
-                const filePath = excelFilePath || dataExcelFile;
-                successHTML += `<strong>📁 Excel Report:</strong> <a href="/api/download-report/${encodeURIComponent(filePath)}" download style="color: #007bff; text-decoration: underline; font-weight: bold;">Download CostMinimizer.xlsx</a><br>`;
-            }
-            
-            successHTML += `</div>`;
-            
             const logContent = logContainer.innerHTML;
             reportsStatus.innerHTML = successHTML;
             reportsStatus.className = 'status-message success';
@@ -352,6 +386,8 @@ function displayReportResults(reportsStatus, logContainer, selectedReports, exce
             if (newLogContainer) {
                 newLogContainer.innerHTML = logContent;
             }
+            
+            addChatMessage('system', `Reports generated successfully!${excelFilePath ? ' Excel file is ready for download.' : ''}`);
         });
 }
 
