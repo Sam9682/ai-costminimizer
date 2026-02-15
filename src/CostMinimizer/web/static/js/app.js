@@ -141,122 +141,150 @@ function streamReportLogs(sessionId, selectedReports) {
     const runButton = document.getElementById('run-reports-btn');
     let excelFilePath = null;
     
+    console.log('Starting SSE connection to:', `/api/stream-logs/${sessionId}`);
+    
     const eventSource = new EventSource(`/api/stream-logs/${sessionId}`);
     
+    eventSource.onopen = function() {
+        console.log('SSE connection opened');
+        const statusLine = document.createElement('div');
+        statusLine.textContent = '🔗 Connected to server, waiting for logs...';
+        statusLine.style.color = '#4CAF50';
+        statusLine.style.marginBottom = '10px';
+        logContainer.appendChild(statusLine);
+    };
+    
     eventSource.onmessage = function(event) {
-        const data = JSON.parse(event.data);
+        console.log('SSE message received:', event.data);
         
-        switch(data.type) {
-            case 'log':
-                // Add log message
-                const logLine = document.createElement('div');
-                logLine.textContent = data.message;
-                logLine.style.marginBottom = '2px';
-                
-                // Highlight important messages
-                if (data.message.includes('ERROR')) {
-                    logLine.style.color = 'red';
-                    logLine.style.fontWeight = 'bold';
-                } else if (data.message.includes('SUCCESS') || data.message.includes('saved into')) {
-                    logLine.style.color = 'green';
-                    logLine.style.fontWeight = 'bold';
-                }
-                
-                // Extract Excel file path
-                if (data.message.includes('Excel Report Output saved into:')) {
-                    const match = data.message.match(/Excel Report Output saved into:\s*(.+\.xlsx)/);
-                    if (match) {
-                        excelFilePath = match[1];
+        try {
+            const data = JSON.parse(event.data);
+            
+            switch(data.type) {
+                case 'log':
+                    // Add log message
+                    const logLine = document.createElement('div');
+                    logLine.textContent = data.message;
+                    logLine.style.marginBottom = '2px';
+                    
+                    // Highlight important messages
+                    if (data.message.includes('ERROR')) {
+                        logLine.style.color = '#ff6b6b';
+                        logLine.style.fontWeight = 'bold';
+                    } else if (data.message.includes('SUCCESS') || data.message.includes('saved into')) {
+                        logLine.style.color = '#51cf66';
+                        logLine.style.fontWeight = 'bold';
+                    } else if (data.message.includes('INFO')) {
+                        logLine.style.color = '#74c0fc';
+                    } else if (data.message.includes('WARNING')) {
+                        logLine.style.color = '#ffd43b';
                     }
-                }
-                
-                logContainer.appendChild(logLine);
-                logContainer.scrollTop = logContainer.scrollHeight;
-                break;
-                
-            case 'excel':
-                excelFilePath = data.path;
-                break;
-                
-            case 'success':
-                const successLine = document.createElement('div');
-                successLine.textContent = data.message;
-                successLine.style.color = 'green';
-                successLine.style.fontWeight = 'bold';
-                successLine.style.marginTop = '10px';
-                logContainer.appendChild(successLine);
-                logContainer.scrollTop = logContainer.scrollHeight;
-                break;
-                
-            case 'error':
-                const errorLine = document.createElement('div');
-                errorLine.textContent = `ERROR: ${data.message}`;
-                errorLine.style.color = 'red';
-                errorLine.style.fontWeight = 'bold';
-                errorLine.style.marginTop = '10px';
-                logContainer.appendChild(errorLine);
-                logContainer.scrollTop = logContainer.scrollHeight;
-                
-                // Update reports-status with error
-                reportsStatus.innerHTML = `<h3>❌ Report Generation Failed</h3>` +
-                    `<div id="log-container"></div>` +
-                    `<div style="margin-top: 15px; padding: 10px; background: #f8d7da; color: #721c24; border-radius: 5px;">` +
-                    `<strong>Error:</strong> ${data.message}` +
-                    `</div>`;
-                reportsStatus.className = 'status-message error';
-                
-                eventSource.close();
-                runButton.disabled = false;
-                runButton.textContent = 'Generate Reports';
-                break;
-                
-            case 'done':
-                eventSource.close();
-                runButton.disabled = false;
-                runButton.textContent = 'Generate Reports';
-                
-                // Show success message with download link in reports-status
-                let successHTML = `<h3>✅ Reports Generated Successfully!</h3>` +
-                    `<div id="log-container"></div>` +
-                    `<div style="margin-top: 15px; padding: 15px; background: #d4edda; color: #155724; border-radius: 5px;">` +
-                    `<strong>📊 Reports:</strong> ${selectedReports.join(', ').toUpperCase()}<br>`;
-                
-                if (excelFilePath || data.excel_file) {
-                    const filePath = excelFilePath || data.excel_file;
-                    successHTML += `<strong>📁 Excel Report:</strong> <a href="/api/download-report/${encodeURIComponent(filePath)}" download style="color: #007bff; text-decoration: underline; font-weight: bold;">Download CostMinimizer.xlsx</a><br>`;
-                }
-                
-                successHTML += `<strong>💡 Tip:</strong> You can now ask questions about the results in the chat below.` +
-                    `</div>`;
-                
-                // Preserve the log container content
-                const logContent = logContainer.innerHTML;
-                reportsStatus.innerHTML = successHTML;
-                reportsStatus.className = 'status-message success';
-                
-                // Restore log content
-                const newLogContainer = document.getElementById('log-container');
-                if (newLogContainer) {
-                    newLogContainer.innerHTML = logContent;
-                }
-                
-                // Add message to chat
-                addChatMessage('system', `Reports generated successfully!${excelFilePath ? ' Excel file is ready for download.' : ''}`);
-                break;
-                
-            case 'keepalive':
-                // Just keep connection alive
-                break;
+                    
+                    // Extract Excel file path
+                    if (data.message.includes('Excel Report Output saved into:')) {
+                        const match = data.message.match(/Excel Report Output saved into:\s*(.+\.xlsx)/);
+                        if (match) {
+                            excelFilePath = match[1];
+                            console.log('Excel file path found:', excelFilePath);
+                        }
+                    }
+                    
+                    logContainer.appendChild(logLine);
+                    logContainer.scrollTop = logContainer.scrollHeight;
+                    break;
+                    
+                case 'excel':
+                    excelFilePath = data.path;
+                    console.log('Excel file path received:', excelFilePath);
+                    break;
+                    
+                case 'success':
+                    const successLine = document.createElement('div');
+                    successLine.textContent = data.message;
+                    successLine.style.color = '#51cf66';
+                    successLine.style.fontWeight = 'bold';
+                    successLine.style.marginTop = '10px';
+                    logContainer.appendChild(successLine);
+                    logContainer.scrollTop = logContainer.scrollHeight;
+                    break;
+                    
+                case 'error':
+                    const errorLine = document.createElement('div');
+                    errorLine.textContent = `ERROR: ${data.message}`;
+                    errorLine.style.color = '#ff6b6b';
+                    errorLine.style.fontWeight = 'bold';
+                    errorLine.style.marginTop = '10px';
+                    logContainer.appendChild(errorLine);
+                    logContainer.scrollTop = logContainer.scrollHeight;
+                    
+                    // Update reports-status with error
+                    reportsStatus.innerHTML = `<h3>❌ Report Generation Failed</h3>` +
+                        `<div id="log-container"></div>` +
+                        `<div style="margin-top: 15px; padding: 10px; background: #f8d7da; color: #721c24; border-radius: 5px;">` +
+                        `<strong>Error:</strong> ${data.message}` +
+                        `</div>`;
+                    reportsStatus.className = 'status-message error';
+                    
+                    eventSource.close();
+                    runButton.disabled = false;
+                    runButton.textContent = 'Generate Reports';
+                    break;
+                    
+                case 'done':
+                    console.log('Report generation complete');
+                    eventSource.close();
+                    runButton.disabled = false;
+                    runButton.textContent = 'Generate Reports';
+                    
+                    // Show success message with download link in reports-status
+                    let successHTML = `<h3>✅ Reports Generated Successfully!</h3>` +
+                        `<div id="log-container"></div>` +
+                        `<div style="margin-top: 15px; padding: 15px; background: #d4edda; color: #155724; border-radius: 5px;">` +
+                        `<strong>📊 Reports:</strong> ${selectedReports.join(', ').toUpperCase()}<br>`;
+                    
+                    if (excelFilePath || data.excel_file) {
+                        const filePath = excelFilePath || data.excel_file;
+                        successHTML += `<strong>📁 Excel Report:</strong> <a href="/api/download-report/${encodeURIComponent(filePath)}" download style="color: #007bff; text-decoration: underline; font-weight: bold;">Download CostMinimizer.xlsx</a><br>`;
+                    }
+                    
+                    successHTML += `<strong>💡 Tip:</strong> You can now ask questions about the results in the chat below.` +
+                        `</div>`;
+                    
+                    // Preserve the log container content
+                    const logContent = logContainer.innerHTML;
+                    reportsStatus.innerHTML = successHTML;
+                    reportsStatus.className = 'status-message success';
+                    
+                    // Restore log content
+                    const newLogContainer = document.getElementById('log-container');
+                    if (newLogContainer) {
+                        newLogContainer.innerHTML = logContent;
+                    }
+                    
+                    // Add message to chat
+                    addChatMessage('system', `Reports generated successfully!${excelFilePath ? ' Excel file is ready for download.' : ''}`);
+                    break;
+                    
+                case 'keepalive':
+                    console.log('Keepalive received');
+                    break;
+                    
+                default:
+                    console.log('Unknown message type:', data.type);
+            }
+        } catch (e) {
+            console.error('Error parsing SSE message:', e, 'Raw data:', event.data);
         }
     };
     
     eventSource.onerror = function(error) {
         console.error('SSE Error:', error);
+        console.log('EventSource readyState:', eventSource.readyState);
         eventSource.close();
         
         const errorLine = document.createElement('div');
-        errorLine.textContent = 'Connection error. Please check the logs above for details.';
-        errorLine.style.color = 'red';
+        errorLine.textContent = '❌ Connection error. The report may still be running. Check server logs for details.';
+        errorLine.style.color = '#ff6b6b';
         errorLine.style.fontWeight = 'bold';
         errorLine.style.marginTop = '10px';
         

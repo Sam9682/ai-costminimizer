@@ -144,6 +144,10 @@ def run_reports():
 
 def execute_reports_background(session_id, reports, region, aws_creds):
     """Execute reports in background and stream logs."""
+    import io
+    import contextlib
+    from rich.console import Console
+    
     # Create queue for this session
     log_queues[session_id] = queue.Queue()
     
@@ -165,6 +169,8 @@ def execute_reports_background(session_id, reports, region, aws_creds):
     # Set environment variables and execute
     original_env = dict(os.environ)
     original_argv = sys.argv
+    original_stdout = sys.stdout
+    original_stderr = sys.stderr
     
     # Setup custom log handler
     sse_handler = SSELogHandler(session_id)
@@ -175,6 +181,35 @@ def execute_reports_background(session_id, reports, region, aws_creds):
     original_level = root_logger.level
     root_logger.setLevel(logging.INFO)
     root_logger.addHandler(sse_handler)
+    
+    # Create custom stdout/stderr that also sends to queue
+    class TeeOutput(io.StringIO):
+        def __init__(self, queue_id, original_stream, prefix=""):
+            super().__init__()
+            self.queue_id = queue_id
+            self.original_stream = original_stream
+            self.prefix = prefix
+            self.buffer = ""
+            
+        def write(self, text):
+            if text and text.strip():
+                # Write to original stream
+                self.original_stream.write(text)
+                self.original_stream.flush()
+                
+                # Send to queue - strip ANSI codes for cleaner display
+                if self.queue_id in log_queues:
+                    # Remove ANSI escape sequences
+                    import re
+                    clean_text = re.sub(r'\x1b\[[0-9;]*m', '', text)
+                    lines = clean_text.split('\n')
+                    for line in lines:
+                        if line.strip():
+                            log_queues[self.queue_id].put(f"{self.prefix}{line}")
+            return len(text)
+        
+        def flush(self):
+            self.original_stream.flush()
     
     excel_file_path = None
     
@@ -187,17 +222,21 @@ def execute_reports_background(session_id, reports, region, aws_creds):
         # Set non-interactive mode to prevent input() prompts
         os.environ['COSTMINIMIZER_NON_INTERACTIVE'] = '1'
         
+        # Redirect stdout and stderr
+        tee_stdout = TeeOutput(session_id, original_stdout, "")
+        tee_stderr = TeeOutput(session_id, original_stderr, "ERROR: ")
+        sys.stdout = tee_stdout
+        sys.stderr = tee_stderr
+        
         # Set sys.argv for argument parsing
         sys.argv = ["CostMinimizer"] + cmd_args
         log_queues[session_id].put(f"INFO - Launching CostMinimizer with arguments: {cmd_args}")
+        log_queues[session_id].put(f"INFO - Starting report generation...")
+        log_queues[session_id].put(f"INFO - This may take several minutes depending on the reports selected...")
         
         # Initialize and run App directly
         cost_app = App(mode='module')
         result = cost_app.main()
-        
-        # Try to find the Excel file path from logs
-        # The path is typically in format: /root/cow/{account_id}/-{date}/CostMinimizer.xlsx
-        excel_file_path = find_excel_file_in_logs(session_id)
         
         log_queues[session_id].put(f"SUCCESS - Reports generated successfully: {', '.join(reports)}")
         if excel_file_path:
@@ -205,9 +244,19 @@ def execute_reports_background(session_id, reports, region, aws_creds):
         log_queues[session_id].put("DONE")
         
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
         log_queues[session_id].put(f"ERROR - {str(e)}")
+        # Send traceback line by line
+        for line in error_details.split('\n'):
+            if line.strip():
+                log_queues[session_id].put(f"ERROR - {line}")
         log_queues[session_id].put("DONE")
     finally:
+        # Restore stdout/stderr
+        sys.stdout = original_stdout
+        sys.stderr = original_stderr
+        
         # Restore environment and argv
         sys.argv = original_argv
         os.environ.clear()
@@ -397,6 +446,18 @@ def download_report(filepath):
     except Exception as e:
         logger.error(f"Error downloading report: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/test-sse')
+def test_sse():
+    """Test SSE endpoint to verify streaming works."""
+    def generate():
+        import time
+        for i in range(10):
+            yield f"data: {json.dumps({'type': 'log', 'message': f'Test message {i}'})}\n\n"
+            time.sleep(0.5)
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+    
+    return Response(generate(), mimetype='text/event-stream')
 
 @app.route('/health', methods=['GET'])
 def health():
