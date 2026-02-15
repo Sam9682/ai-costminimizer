@@ -226,6 +226,10 @@ def execute_reports_background(session_id, reports, region, aws_creds):
         # Set non-interactive mode to prevent input() prompts
         os.environ['COSTMINIMIZER_NON_INTERACTIVE'] = '1'
         
+        # Configure SQLite to allow thread sharing
+        import sqlite3
+        sqlite3.threadsafety = 3  # Allow sharing connections across threads
+        
         # Redirect stdout and stderr
         tee_stdout = TeeOutput(session_id, original_stdout, "")
         tee_stderr = TeeOutput(session_id, original_stderr, "ERROR: ")
@@ -238,7 +242,8 @@ def execute_reports_background(session_id, reports, region, aws_creds):
         log_queues[session_id].put(f"INFO - Starting report generation...")
         log_queues[session_id].put(f"INFO - This may take several minutes depending on the reports selected...")
         
-        # Initialize and run App directly
+        # Initialize and run App directly in this thread
+        # This ensures the SQLite connection is created in the same thread where it's used
         cost_app = App(mode='module')
         result = cost_app.main()
         

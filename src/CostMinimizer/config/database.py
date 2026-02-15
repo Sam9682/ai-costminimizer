@@ -68,7 +68,8 @@ class ToolingDatabase:
             # Ensure parent directory exists before connecting
             os.makedirs(os.path.dirname(self.database_file), exist_ok=True)
             # SQLite will automatically create the database file if it doesn't exist
-            return sqlite3.connect(self.database_file)
+            # Use check_same_thread=False to allow connection sharing across threads
+            return sqlite3.connect(self.database_file, check_same_thread=False)
         except sqlite3.Error as e:
             self.logger.error(f"Error connecting to database: {e}")
             raise
