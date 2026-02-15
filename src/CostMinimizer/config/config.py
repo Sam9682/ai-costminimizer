@@ -144,10 +144,13 @@ class Config(Singleton):
                     cls.automate_launch_cow_cust_configure()
 
                     cls.console.print(f'[green]Automatic configuration successfully performed ![/green]')
-                    cls.console.print(f'[yellow]WELCOME ! This is the first time CostMinimizer is launched, please configure the tooling !')
-                    cls.console.print(f'[yellow]        Select the option 1)    Manual CostMinimizer Tool Configuration (setup my AWS account) !!![/yellow]')
-                    cls.console.print(f'[yellow]        In case you want to use CUR, verify or update the values of cur_db & cur_table"[/yellow]')
-                    ConfigureToolingCommand().run()
+                    
+                    # Skip interactive configuration in non-interactive mode
+                    if os.environ.get('COSTMINIMIZER_NON_INTERACTIVE') != '1':
+                        cls.console.print(f'[yellow]WELCOME ! This is the first time CostMinimizer is launched, please configure the tooling !')
+                        cls.console.print(f'[yellow]        Select the option 1)    Manual CostMinimizer Tool Configuration (setup my AWS account) !!![/yellow]')
+                        cls.console.print(f'[yellow]        In case you want to use CUR, verify or update the values of cur_db & cur_table"[/yellow]')
+                        ConfigureToolingCommand().run()
 
                 except Exception as e:
                     exit_automatic_configuration()
