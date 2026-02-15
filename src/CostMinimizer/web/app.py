@@ -24,7 +24,6 @@ src_path = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(src_path))
 
 from CostMinimizer.CostMinimizer import App
-from CostMinimizer.mcp.tools import CostMinimizerTools
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -33,9 +32,6 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'change-this-in-production-please')
 CORS(app)
-
-# Initialize MCP tools
-mcp_tools = None
 
 @app.route('/')
 def index():
@@ -101,9 +97,26 @@ def run_reports():
         if not aws_creds:
             return jsonify({'success': False, 'error': 'No credentials found. Please validate credentials first.'}), 401
         
-        # Set environment variables
+        # Build command arguments
+        cmd_args = []
+        for report in reports:
+            cmd_args.append(f"--{report}")
+        
+        # Add following arguments : --checks ALL
+        cmd_args.append("--checks")
+        cmd_args.append("ALL")
+        
+        # Add auto-update-conf to skip interactive prompts
+        cmd_args.append("--auto-update-conf")
+        
+        if "co" in reports:
+            cmd_args.extend(["--region", region])
+        
+        # Set environment variables and execute
         original_env = dict(os.environ)
+        original_argv = sys.argv
         try:
+            # Set AWS credentials in environment
             for key, value in aws_creds.items():
                 if value:
                     os.environ[key] = value
@@ -111,17 +124,24 @@ def run_reports():
             # Set non-interactive mode to prevent input() prompts
             os.environ['COSTMINIMIZER_NON_INTERACTIVE'] = '1'
             
-            # Initialize tools with current credentials
-            global mcp_tools
-            mcp_tools = CostMinimizerTools()
+            # Set sys.argv for argument parsing
+            sys.argv = ["CostMinimizer"] + cmd_args
+            logger.info(f"Launching CostMinimizer with arguments: {cmd_args}")
             
-            # Execute reports
-            result = mcp_tools.execute_reports(reports, region)
+            # Initialize and run App directly
+            cost_app = App(mode='module')
+            result = cost_app.main()
             
-            return jsonify(result)
+            return jsonify({
+                'success': True,
+                'reports_generated': reports,
+                'output_folder': '~/cow',
+                'result': result
+            })
             
         finally:
-            # Restore environment
+            # Restore environment and argv
+            sys.argv = original_argv
             os.environ.clear()
             os.environ.update(original_env)
         
@@ -145,9 +165,16 @@ def chat():
         if not aws_creds:
             return jsonify({'success': False, 'error': 'No credentials found. Please validate credentials first.'}), 401
         
-        # Set environment variables
+        # Build command arguments
+        cmd_args = ["-q", message]
+        if report_file and os.path.exists(report_file):
+            cmd_args.extend(["-f", report_file])
+        
+        # Set environment variables and execute
         original_env = dict(os.environ)
+        original_argv = sys.argv
         try:
+            # Set AWS credentials in environment
             for key, value in aws_creds.items():
                 if value:
                     os.environ[key] = value
@@ -155,18 +182,24 @@ def chat():
             # Set non-interactive mode to prevent input() prompts
             os.environ['COSTMINIMIZER_NON_INTERACTIVE'] = '1'
             
-            # Initialize tools if not already done
-            global mcp_tools
-            if mcp_tools is None:
-                mcp_tools = CostMinimizerTools()
+            # Set sys.argv for argument parsing
+            sys.argv = ["CostMinimizer"] + cmd_args
+            logger.info(f"Launching CostMinimizer for question with arguments: {cmd_args}")
             
-            # Ask question
-            result = mcp_tools.ask_question(message, report_file)
+            # Initialize and run App directly
+            cost_app = App(mode='module')
+            result = cost_app.main()
             
-            return jsonify(result)
+            return jsonify({
+                'success': True,
+                'question': message,
+                'answer': result,
+                'report_file': report_file
+            })
             
         finally:
-            # Restore environment
+            # Restore environment and argv
+            sys.argv = original_argv
             os.environ.clear()
             os.environ.update(original_env)
         
@@ -178,11 +211,12 @@ def chat():
 def available_reports():
     """Get list of available report types."""
     try:
-        global mcp_tools
-        if mcp_tools is None:
-            mcp_tools = CostMinimizerTools()
-        
-        reports = mcp_tools.get_available_reports()
+        reports = {
+            "ce": "Cost Explorer - Analyze spending patterns, trends, and Reserved Instance utilization",
+            "ta": "Trusted Advisor - Get AWS best practice recommendations for cost optimization",
+            "co": "Compute Optimizer - Get rightsizing recommendations for EC2, EBS, Lambda",
+            "cur": "Cost & Usage Report - Detailed billing analysis with custom queries"
+        }
         return jsonify({'success': True, 'reports': reports})
         
     except Exception as e:
