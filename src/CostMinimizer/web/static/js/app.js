@@ -140,6 +140,7 @@ function streamReportLogs(sessionId, selectedReports) {
     const logContainer = document.getElementById('log-container');
     const runButton = document.getElementById('run-reports-btn');
     let excelFilePath = null;
+    let treeData = null;
     
     console.log('Starting SSE connection to:', `/api/stream-logs/${sessionId}`);
     
@@ -236,33 +237,8 @@ function streamReportLogs(sessionId, selectedReports) {
                     runButton.disabled = false;
                     runButton.textContent = 'Generate Reports';
                     
-                    // Show success message with download link in reports-status
-                    let successHTML = `<h3>✅ Reports Generated Successfully!</h3>` +
-                        `<div id="log-container"></div>` +
-                        `<div style="margin-top: 15px; padding: 15px; background: #d4edda; color: #155724; border-radius: 5px;">` +
-                        `<strong>📊 Reports:</strong> ${selectedReports.join(', ').toUpperCase()}<br>`;
-                    
-                    if (excelFilePath || data.excel_file) {
-                        const filePath = excelFilePath || data.excel_file;
-                        successHTML += `<strong>📁 Excel Report:</strong> <a href="/api/download-report/${encodeURIComponent(filePath)}" download style="color: #007bff; text-decoration: underline; font-weight: bold;">Download CostMinimizer.xlsx</a><br>`;
-                    }
-                    
-                    successHTML += `<strong>💡 Tip:</strong> You can now ask questions about the results in the chat below.` +
-                        `</div>`;
-                    
-                    // Preserve the log container content
-                    const logContent = logContainer.innerHTML;
-                    reportsStatus.innerHTML = successHTML;
-                    reportsStatus.className = 'status-message success';
-                    
-                    // Restore log content
-                    const newLogContainer = document.getElementById('log-container');
-                    if (newLogContainer) {
-                        newLogContainer.innerHTML = logContent;
-                    }
-                    
-                    // Add message to chat
-                    addChatMessage('system', `Reports generated successfully!${excelFilePath ? ' Excel file is ready for download.' : ''}`);
+                    // Show success message with download link and file tree
+                    displayReportResults(reportsStatus, logContainer, selectedReports, excelFilePath, data.excel_file, treeData);
                     break;
                     
                 case 'keepalive':
@@ -274,6 +250,17 @@ function streamReportLogs(sessionId, selectedReports) {
             }
         } catch (e) {
             console.error('Error parsing SSE message:', e, 'Raw data:', event.data);
+            
+            // Check if it's a TREE_DATA message
+            if (event.data.includes('TREE_DATA - ')) {
+                try {
+                    const treeJson = event.data.replace('data: {"type": "log", "message": "TREE_DATA - ', '').replace('"}', '');
+                    treeData = JSON.parse(treeJson);
+                    console.log('Tree data received:', treeData);
+                } catch (parseError) {
+                    console.error('Error parsing tree data:', parseError);
+                }
+            }
         }
     };
     
@@ -295,6 +282,109 @@ function streamReportLogs(sessionId, selectedReports) {
         runButton.disabled = false;
         runButton.textContent = 'Generate Reports';
     };
+}
+
+function displayReportResults(reportsStatus, logContainer, selectedReports, excelFilePath, dataExcelFile, treeData) {
+    // Fetch the latest tree data
+    fetch('/api/cow-data-tree')
+        .then(response => response.json())
+        .then(treeInfo => {
+            let successHTML = `<h3>✅ Reports Generated Successfully!</h3>` +
+                `<div id="log-container"></div>` +
+                `<div style="margin-top: 15px; padding: 15px; background: #d4edda; color: #155724; border-radius: 5px;">` +
+                `<strong>📊 Reports:</strong> ${selectedReports.join(', ').toUpperCase()}<br>`;
+            
+            if (excelFilePath || dataExcelFile) {
+                const filePath = excelFilePath || dataExcelFile;
+                successHTML += `<strong>📁 Excel Report:</strong> <a href="/api/download-report/${encodeURIComponent(filePath)}" download style="color: #007bff; text-decoration: underline; font-weight: bold;">Download CostMinimizer.xlsx</a><br>`;
+            }
+            
+            successHTML += `<strong>💡 Tip:</strong> You can now ask questions about the results in the chat below.` +
+                `</div>`;
+            
+            // Add file tree section
+            if (treeInfo.success && treeInfo.tree && treeInfo.tree.length > 0) {
+                successHTML += `<div style="margin-top: 15px; padding: 15px; background: #e7f3ff; color: #004085; border-radius: 5px;">` +
+                    `<strong>📂 Generated Files:</strong><br>` +
+                    `<div id="file-tree" style="margin-top: 10px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto;"></div>` +
+                    `</div>`;
+            }
+            
+            // Preserve the log container content
+            const logContent = logContainer.innerHTML;
+            reportsStatus.innerHTML = successHTML;
+            reportsStatus.className = 'status-message success';
+            
+            // Restore log content
+            const newLogContainer = document.getElementById('log-container');
+            if (newLogContainer) {
+                newLogContainer.innerHTML = logContent;
+            }
+            
+            // Render file tree
+            if (treeInfo.success && treeInfo.tree && treeInfo.tree.length > 0) {
+                renderFileTree(treeInfo.tree, treeInfo.base_path);
+            }
+            
+            // Add message to chat
+            addChatMessage('system', `Reports generated successfully!${excelFilePath ? ' Excel file is ready for download.' : ''}`);
+        })
+        .catch(error => {
+            console.error('Error fetching tree data:', error);
+            // Still show success message even if tree fetch fails
+            let successHTML = `<h3>✅ Reports Generated Successfully!</h3>` +
+                `<div id="log-container"></div>` +
+                `<div style="margin-top: 15px; padding: 15px; background: #d4edda; color: #155724; border-radius: 5px;">` +
+                `<strong>📊 Reports:</strong> ${selectedReports.join(', ').toUpperCase()}<br>`;
+            
+            if (excelFilePath || dataExcelFile) {
+                const filePath = excelFilePath || dataExcelFile;
+                successHTML += `<strong>📁 Excel Report:</strong> <a href="/api/download-report/${encodeURIComponent(filePath)}" download style="color: #007bff; text-decoration: underline; font-weight: bold;">Download CostMinimizer.xlsx</a><br>`;
+            }
+            
+            successHTML += `</div>`;
+            
+            const logContent = logContainer.innerHTML;
+            reportsStatus.innerHTML = successHTML;
+            reportsStatus.className = 'status-message success';
+            
+            const newLogContainer = document.getElementById('log-container');
+            if (newLogContainer) {
+                newLogContainer.innerHTML = logContent;
+            }
+        });
+}
+
+function renderFileTree(tree, basePath) {
+    const fileTreeContainer = document.getElementById('file-tree');
+    if (!fileTreeContainer) return;
+    
+    let html = '';
+    
+    tree.forEach(item => {
+        const indent = '  '.repeat(item.level);
+        
+        if (item.type === 'directory') {
+            html += `<div style="color: #0066cc; font-weight: bold;">` +
+                `${indent}📁 ${item.name}/</div>`;
+        } else if (item.type === 'file') {
+            const icon = item.is_excel ? '📊' : '📄';
+            const sizeKB = (item.size / 1024).toFixed(2);
+            const date = new Date(item.modified * 1000).toLocaleString();
+            
+            let fileHTML = `<div style="color: #333;">` +
+                `${indent}${icon} ${item.name} <span style="color: #666; font-size: 10px;">(${sizeKB} KB)</span>`;
+            
+            if (item.is_excel) {
+                fileHTML += ` <a href="/api/download-report/${encodeURIComponent(item.path)}" download style="color: #007bff; text-decoration: none; margin-left: 10px;">⬇️ Download</a>`;
+            }
+            
+            fileHTML += `</div>`;
+            html += fileHTML;
+        }
+    });
+    
+    fileTreeContainer.innerHTML = html;
 }
 
 async function handleSendChat() {

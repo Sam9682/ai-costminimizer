@@ -12,7 +12,7 @@ services:
       - FLASK_APP=src/CostMinimizer/web/app.py
     volumes:
       - app_data:/app/data
-      - cow_data:/root/cow
+      - ./cow_data:/root/cow  # Bind mount to local directory
     restart: unless-stopped
     networks:
       - costminimizer-network
@@ -25,6 +25,7 @@ services:
     volumes:
       - ./conf/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./ssl:/etc/nginx/ssl:ro
+      - /var/lib/docker/volumes/:/cow_data # Bind mount to local directory
     depends_on:
       - app
     restart: unless-stopped
@@ -36,7 +37,7 @@ services:
 
 volumes:
   app_data:
-  cow_data:
+  # cow_data volume removed - now using bind mount
 
 networks:
   costminimizer-network:

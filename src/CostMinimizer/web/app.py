@@ -250,6 +250,12 @@ def execute_reports_background(session_id, reports, region, aws_creds):
         log_queues[session_id].put(f"SUCCESS - Reports generated successfully: {', '.join(reports)}")
         if excel_file_path:
             log_queues[session_id].put(f"EXCEL_FILE - {excel_file_path}")
+        
+        # Get the directory tree of generated files
+        tree_info = get_cow_data_tree('/root/cow')
+        if tree_info.get('success'):
+            log_queues[session_id].put(f"TREE_DATA - {json.dumps(tree_info)}")
+        
         log_queues[session_id].put("DONE")
         
     except Exception as e:
@@ -280,6 +286,63 @@ def find_excel_file_in_logs(session_id):
     # This is a placeholder - in reality, we'd need to capture this from the actual logs
     # For now, we'll return None and let the log message itself contain the path
     return None
+
+def get_cow_data_tree(base_path='/root/cow'):
+    """
+    Generate a tree structure of files in the cow_data directory.
+    Returns a list of dictionaries with file information.
+    """
+    import os
+    from pathlib import Path
+    
+    tree_data = []
+    
+    try:
+        base_path = Path(base_path)
+        if not base_path.exists():
+            return {'error': f'Directory {base_path} does not exist'}
+        
+        # Walk through the directory tree
+        for root, dirs, files in os.walk(base_path):
+            root_path = Path(root)
+            relative_path = root_path.relative_to(base_path)
+            level = len(relative_path.parts)
+            
+            # Add directory info
+            if str(relative_path) != '.':
+                tree_data.append({
+                    'type': 'directory',
+                    'name': root_path.name,
+                    'path': str(root_path),
+                    'relative_path': str(relative_path),
+                    'level': level
+                })
+            
+            # Add files in this directory
+            for file in sorted(files):
+                file_path = root_path / file
+                try:
+                    file_size = file_path.stat().st_size
+                    file_mtime = file_path.stat().st_mtime
+                    
+                    tree_data.append({
+                        'type': 'file',
+                        'name': file,
+                        'path': str(file_path),
+                        'relative_path': str(Path(relative_path) / file),
+                        'level': level + 1,
+                        'size': file_size,
+                        'modified': file_mtime,
+                        'is_excel': file.endswith('.xlsx')
+                    })
+                except Exception as e:
+                    logger.error(f"Error getting file info for {file_path}: {e}")
+        
+        return {'success': True, 'tree': tree_data, 'base_path': str(base_path)}
+        
+    except Exception as e:
+        logger.error(f"Error generating cow_data tree: {e}")
+        return {'error': str(e)}
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
@@ -467,6 +530,16 @@ def test_sse():
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
     
     return Response(generate(), mimetype='text/event-stream')
+
+@app.route('/api/cow-data-tree', methods=['GET'])
+def cow_data_tree():
+    """Get the directory tree of cow_data."""
+    try:
+        tree_info = get_cow_data_tree('/root/cow')
+        return jsonify(tree_info)
+    except Exception as e:
+        logger.error(f"Error getting cow_data tree: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/health', methods=['GET'])
 def health():
