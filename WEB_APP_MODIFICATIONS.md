@@ -4,7 +4,7 @@
 Modified the CostMinimizer web application to:
 1. Use the `App` class directly instead of MCP wrapper
 2. Stream logs in real-time using Server-Sent Events (SSE)
-3. Display logs in the credentials-status panel
+3. Display logs in the **reports-status** panel (not credentials-status)
 4. Provide Excel file download functionality
 
 ## Changes Made
@@ -44,7 +44,7 @@ Modified the CostMinimizer web application to:
 ### Frontend (src/CostMinimizer/web/static/js/app.js)
 
 #### 1. Modified `handleRunReports()` Function
-- Clears credentials-status panel and adds log container
+- Clears **reports-status** panel and adds log container (changed from credentials-status)
 - Initiates report generation via POST to `/api/run-reports`
 - Receives session ID and calls `streamReportLogs()`
 
@@ -57,12 +57,15 @@ Modified the CostMinimizer web application to:
   - `error`: Error messages (highlighted in red)
   - `done`: Completion message (closes connection, shows download link)
   - `keepalive`: Connection maintenance
+- Updates **reports-status** div with final success/error message
+- Preserves log content when showing final status
 
 #### 3. Log Display Features
-- Real-time log streaming in monospace font
+- Real-time log streaming in monospace font in **reports-status** div
 - Auto-scroll to bottom as new logs arrive
 - Color highlighting for important messages (errors in red, success in green)
 - Excel file path extraction and download link generation
+- Final status message with download link displayed in reports-status
 
 ### Styling (src/CostMinimizer/web/static/css/style.css)
 
@@ -72,11 +75,13 @@ Modified the CostMinimizer web application to:
 - Custom scrollbar styling
 - Max height with overflow-y auto
 - Proper spacing and padding
+- Min height for reports-status log container
 
 #### Enhanced Status Message Styles
-- Added h3 heading support
+- Added h3 heading support with proper colors for success/error/info states
 - Styled download links (blue, underlined, bold)
 - Hover effects for links
+- Specific styling for reports-status div states
 
 ## How It Works
 

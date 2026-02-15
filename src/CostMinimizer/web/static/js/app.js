@@ -99,15 +99,11 @@ async function handleRunReports() {
     runButton.disabled = true;
     runButton.textContent = 'Generating Reports...';
     
-    // Clear previous logs in credentials-status
-    const credentialsStatus = document.getElementById('credentials-status');
-    credentialsStatus.innerHTML = '<h3>📊 Report Generation Logs:</h3><div id="log-container" style="max-height: 400px; overflow-y: auto; background: #f5f5f5; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px;"></div>';
-    credentialsStatus.className = 'status-message info';
-    credentialsStatus.style.display = 'block';
-    
-    showStatus('reports-status', 
-        `🚀 Generating reports: ${selectedReports.join(', ').toUpperCase()}<br>This may take several minutes...`, 
-        'info');
+    // Clear previous logs and setup log container in reports-status
+    const reportsStatus = document.getElementById('reports-status');
+    reportsStatus.innerHTML = '<h3>📊 Report Generation Logs:</h3><div id="log-container"></div>';
+    reportsStatus.className = 'status-message info';
+    reportsStatus.style.display = 'block';
     
     try {
         // Start report generation
@@ -140,6 +136,7 @@ async function handleRunReports() {
 }
 
 function streamReportLogs(sessionId, selectedReports) {
+    const reportsStatus = document.getElementById('reports-status');
     const logContainer = document.getElementById('log-container');
     const runButton = document.getElementById('run-reports-btn');
     let excelFilePath = null;
@@ -200,7 +197,14 @@ function streamReportLogs(sessionId, selectedReports) {
                 logContainer.appendChild(errorLine);
                 logContainer.scrollTop = logContainer.scrollHeight;
                 
-                showStatus('reports-status', `❌ Error: ${data.message}`, 'error');
+                // Update reports-status with error
+                reportsStatus.innerHTML = `<h3>❌ Report Generation Failed</h3>` +
+                    `<div id="log-container"></div>` +
+                    `<div style="margin-top: 15px; padding: 10px; background: #f8d7da; color: #721c24; border-radius: 5px;">` +
+                    `<strong>Error:</strong> ${data.message}` +
+                    `</div>`;
+                reportsStatus.className = 'status-message error';
+                
                 eventSource.close();
                 runButton.disabled = false;
                 runButton.textContent = 'Generate Reports';
@@ -211,18 +215,30 @@ function streamReportLogs(sessionId, selectedReports) {
                 runButton.disabled = false;
                 runButton.textContent = 'Generate Reports';
                 
-                // Show success message with download link
-                let statusMessage = `✅ Reports generated successfully!<br>` +
-                    `📊 Reports: ${selectedReports.join(', ').toUpperCase()}<br>`;
+                // Show success message with download link in reports-status
+                let successHTML = `<h3>✅ Reports Generated Successfully!</h3>` +
+                    `<div id="log-container"></div>` +
+                    `<div style="margin-top: 15px; padding: 15px; background: #d4edda; color: #155724; border-radius: 5px;">` +
+                    `<strong>📊 Reports:</strong> ${selectedReports.join(', ').toUpperCase()}<br>`;
                 
                 if (excelFilePath || data.excel_file) {
                     const filePath = excelFilePath || data.excel_file;
-                    statusMessage += `📁 Excel Report: <a href="/api/download-report/${encodeURIComponent(filePath)}" download style="color: #007bff; text-decoration: underline;">Download CostMinimizer.xlsx</a><br>`;
+                    successHTML += `<strong>📁 Excel Report:</strong> <a href="/api/download-report/${encodeURIComponent(filePath)}" download style="color: #007bff; text-decoration: underline; font-weight: bold;">Download CostMinimizer.xlsx</a><br>`;
                 }
                 
-                statusMessage += `💡 You can now ask questions about the results in the chat below.`;
+                successHTML += `<strong>💡 Tip:</strong> You can now ask questions about the results in the chat below.` +
+                    `</div>`;
                 
-                showStatus('reports-status', statusMessage, 'success');
+                // Preserve the log container content
+                const logContent = logContainer.innerHTML;
+                reportsStatus.innerHTML = successHTML;
+                reportsStatus.className = 'status-message success';
+                
+                // Restore log content
+                const newLogContainer = document.getElementById('log-container');
+                if (newLogContainer) {
+                    newLogContainer.innerHTML = logContent;
+                }
                 
                 // Add message to chat
                 addChatMessage('system', `Reports generated successfully!${excelFilePath ? ' Excel file is ready for download.' : ''}`);
@@ -243,7 +259,10 @@ function streamReportLogs(sessionId, selectedReports) {
         errorLine.style.color = 'red';
         errorLine.style.fontWeight = 'bold';
         errorLine.style.marginTop = '10px';
-        logContainer.appendChild(errorLine);
+        
+        if (logContainer) {
+            logContainer.appendChild(errorLine);
+        }
         
         runButton.disabled = false;
         runButton.textContent = 'Generate Reports';
